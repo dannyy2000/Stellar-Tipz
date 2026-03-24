@@ -103,6 +103,18 @@ impl TipzContract {
         admin::update_x_metrics(&env, &caller, &creator, x_followers, x_engagement_avg)
     }
 
+    /// Batch-update X metrics for multiple creators (admin only).
+    ///
+    /// At most 50 entries per call. Unregistered addresses are skipped (with a
+    /// logged event) instead of failing the transaction.
+    pub fn batch_update_x_metrics(
+        env: Env,
+        caller: Address,
+        updates: Vec<(Address, u32, u32)>,
+    ) -> Result<u32, ContractError> {
+        admin::batch_update_x_metrics(&env, &caller, updates)
+    }
+
     /// Get a profile by address.
     pub fn get_profile(env: Env, address: Address) -> Result<Profile, ContractError> {
         if !storage::has_profile(&env, &address) {

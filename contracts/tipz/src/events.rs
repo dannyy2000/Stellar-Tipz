@@ -8,6 +8,7 @@
 //! - TipSent(from, to, amount)
 //! - TipsWithdrawn(address, amount, fee)
 //! - CreditScoreUpdated(address, old_score, new_score)
+//! - XMetricsBatchSkipped(creator) — batch update skipped unregistered address
 //! - AdminChanged(old_admin, new_admin)
 //! - FeeUpdated(old_fee, new_fee)
 
@@ -65,24 +66,10 @@ pub fn emit_credit_score_updated(env: &Env, address: &Address, old_score: u32, n
     );
 }
 
-/// Emit an `AdminChanged` event when the admin role is transferred.
-///
-/// Topic: ("admin", "changed")
-#[allow(dead_code)]
-pub fn emit_admin_changed(env: &Env, old_admin: &Address, new_admin: &Address) {
+/// Emitted when a batch X metrics update skips a creator who is not registered.
+pub fn emit_x_metrics_batch_skipped(env: &Env, creator: &Address) {
     env.events().publish(
-        (symbol_short!("admin"), symbol_short!("changed")),
-        (old_admin.clone(), new_admin.clone()),
-    );
-}
-
-/// Emit a `FeeUpdated` event when the withdrawal fee is changed.
-///
-/// Topic: ("fee", "updated")
-#[allow(dead_code)]
-pub fn emit_fee_updated(env: &Env, old_bps: u32, new_bps: u32) {
-    env.events().publish(
-        (symbol_short!("fee"), symbol_short!("updated")),
-        (old_bps, new_bps),
+        (symbol_short!("xbatch"), symbol_short!("skipped")),
+        creator.clone(),
     );
 }

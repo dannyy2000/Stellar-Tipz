@@ -38,4 +38,6 @@ pub enum ContractError {
     OverflowError = 15,
     /// Image URL exceeds 256 characters
     InvalidImageUrl = 16,
+    /// Batch update exceeds the maximum allowed entries (50)
+    BatchTooLarge = 17,
 }

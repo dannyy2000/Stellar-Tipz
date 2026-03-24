@@ -10,7 +10,7 @@
 
 #![cfg(test)]
 
-use soroban_sdk::{testutils::Address as _, Address, Env, String};
+use soroban_sdk::{testutils::Address as _, vec, Address, Env, String, Vec};
 
 use crate::errors::ContractError;
 use crate::storage::DataKey;
@@ -33,11 +33,16 @@ fn native_token_address(env: &Env) -> Address {
         .address()
 }
 
-fn insert_profile(env: &Env, client: &TipzContractClient<'_>, owner: &Address) {
+fn insert_profile_with_username(
+    env: &Env,
+    client: &TipzContractClient<'_>,
+    owner: &Address,
+    username: &str,
+) {
     let now = env.ledger().timestamp();
     let profile = Profile {
         owner: owner.clone(),
-        username: String::from_str(env, "creator"),
+        username: String::from_str(env, username),
         display_name: String::from_str(env, "Creator"),
         bio: String::from_str(env, ""),
         image_url: String::from_str(env, ""),
@@ -57,6 +62,10 @@ fn insert_profile(env: &Env, client: &TipzContractClient<'_>, owner: &Address) {
             .persistent()
             .set(&DataKey::Profile(owner.clone()), &profile);
     });
+}
+
+fn insert_profile(env: &Env, client: &TipzContractClient<'_>, owner: &Address) {
+    insert_profile_with_username(env, client, owner, "creator");
 }
 
 #[test]
@@ -242,4 +251,115 @@ fn test_update_x_metrics_requires_registered_creator() {
 
     let result = client.try_update_x_metrics(&admin, &creator, &10_u32, &5_u32);
     assert_eq!(result, Err(Ok(ContractError::NotRegistered)));
+}
+
+#[test]
+fn test_batch_update_x_metrics_requires_admin() {
+    let (env, client) = setup_env();
+    let admin = Address::generate(&env);
+    let fee_collector = Address::generate(&env);
+    let token_address = native_token_address(&env);
+    let creator = Address::generate(&env);
+    let caller = Address::generate(&env);
+
+    client.initialize(&admin, &fee_collector, &200_u32, &token_address);
+    insert_profile(&env, &client, &creator);
+
+    let updates: Vec<(Address, u32, u32)> = vec![&env, (creator.clone(), 100_u32, 50_u32)];
+    let result = client.try_batch_update_x_metrics(&caller, &updates);
+    assert_eq!(result, Err(Ok(ContractError::NotAuthorized)));
+}
+
+#[test]
+fn test_batch_update_x_metrics_batch_too_large() {
+    let (env, client) = setup_env();
+    let admin = Address::generate(&env);
+    let fee_collector = Address::generate(&env);
+    let token_address = native_token_address(&env);
+
+    client.initialize(&admin, &fee_collector, &200_u32, &token_address);
+
+    let mut updates = Vec::new(&env);
+    for _ in 0..51 {
+        let a = Address::generate(&env);
+        updates.push_back((a, 1_u32, 1_u32));
+    }
+
+    let result = client.try_batch_update_x_metrics(&admin, &updates);
+    assert_eq!(result, Err(Ok(ContractError::BatchTooLarge)));
+}
+
+#[test]
+fn test_batch_update_x_metrics_updates_multiple_and_counts() {
+    let (env, client) = setup_env();
+    let admin = Address::generate(&env);
+    let fee_collector = Address::generate(&env);
+    let token_address = native_token_address(&env);
+    let c1 = Address::generate(&env);
+    let c2 = Address::generate(&env);
+
+    client.initialize(&admin, &fee_collector, &200_u32, &token_address);
+    insert_profile_with_username(&env, &client, &c1, "alice");
+    insert_profile_with_username(&env, &client, &c2, "bob");
+
+    let updates: Vec<(Address, u32, u32)> = vec![
+        &env,
+        (c1.clone(), 2_500_u32, 500_u32),
+        (c2.clone(), 100_u32, 20_u32),
+    ];
+
+    let count = client.batch_update_x_metrics(&admin, &updates);
+    assert_eq!(count, 2);
+
+    env.as_contract(&client.address, || {
+        let p1: Profile = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Profile(c1.clone()))
+            .unwrap();
+        assert_eq!(p1.x_followers, 2_500);
+        assert_eq!(p1.x_engagement_avg, 500);
+        assert_eq!(p1.credit_score, 70);
+
+        let p2: Profile = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Profile(c2.clone()))
+            .unwrap();
+        assert_eq!(p2.x_followers, 100);
+        assert_eq!(p2.x_engagement_avg, 20);
+        assert_eq!(p2.credit_score, 41);
+    });
+}
+
+#[test]
+fn test_batch_update_x_metrics_skips_unregistered_returns_count() {
+    let (env, client) = setup_env();
+    let admin = Address::generate(&env);
+    let fee_collector = Address::generate(&env);
+    let token_address = native_token_address(&env);
+    let registered = Address::generate(&env);
+    let stranger = Address::generate(&env);
+
+    client.initialize(&admin, &fee_collector, &200_u32, &token_address);
+    insert_profile(&env, &client, &registered);
+
+    let updates: Vec<(Address, u32, u32)> = vec![
+        &env,
+        (stranger, 9_u32, 9_u32),
+        (registered.clone(), 2_500_u32, 500_u32),
+    ];
+
+    let count = client.batch_update_x_metrics(&admin, &updates);
+    assert_eq!(count, 1);
+
+    env.as_contract(&client.address, || {
+        let p: Profile = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Profile(registered.clone()))
+            .unwrap();
+        assert_eq!(p.x_followers, 2_500);
+        assert_eq!(p.credit_score, 70);
+    });
 }
