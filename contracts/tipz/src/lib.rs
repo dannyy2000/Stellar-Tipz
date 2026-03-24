@@ -19,6 +19,7 @@ mod errors;
 mod events;
 mod fees;
 mod leaderboard;
+mod profile;
 mod storage;
 mod tips;
 mod types;
@@ -40,15 +41,16 @@ impl TipzContract {
     // Initialization
     // ──────────────────────────────────────────────
 
-    /// Initialize the contract with admin, fee collector, and fee percentage.
+    /// Initialize the contract with admin, fee collector, fee percentage, and native token address.
     /// Can only be called once.
     pub fn initialize(
         env: Env,
         admin: Address,
         fee_collector: Address,
         fee_bps: u32,
+        native_token: Address,
     ) -> Result<(), ContractError> {
-        admin::initialize(&env, &admin, &fee_collector, fee_bps)
+        admin::initialize(&env, &admin, &fee_collector, fee_bps, &native_token)
     }
 
     // ──────────────────────────────────────────────
@@ -65,8 +67,15 @@ impl TipzContract {
         _image_url: String,
         _x_handle: String,
     ) -> Result<Profile, ContractError> {
-        // TODO: Implement in issue #1 - Profile Registration
-        Err(ContractError::NotInitialized)
+        profile::register_profile(
+            &env,
+            caller,
+            username,
+            display_name,
+            bio,
+            image_url,
+            x_handle,
+        )
     }
 
     /// Update an existing profile (owner only).
@@ -119,8 +128,7 @@ impl TipzContract {
         _amount: i128,
         _message: String,
     ) -> Result<(), ContractError> {
-        // TODO: Implement in issue #7 - Send Tip
-        Err(ContractError::NotInitialized)
+        tips::send_tip(&env, &tipper, &creator, amount, &message)
     }
 
     /// Withdraw accumulated tips (fee deducted).

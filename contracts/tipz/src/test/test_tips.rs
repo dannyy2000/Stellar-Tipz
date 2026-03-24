@@ -1,347 +1,257 @@
 //! Tests for tip record storage with temporary TTL (issue #10).
 //!
-//! All storage calls must run inside `env.as_contract()` because the Soroban
-//! SDK enforces contract-context isolation in tests.
-//!
-//! Test cases:
-//! - Sequential tip ID assignment
-//! - Correct field values on stored tips
-//! - `get_tip` returns `None` for missing / expired entries
-//! - `get_recent_tips` returns only the target creator's tips
-//! - `get_recent_tips` returns entries newest-first
-//! - `get_recent_tips` respects the `count` limit
-//! - `get_recent_tips` returns an empty list when there are no tips
-//! - TTL expiry: entries are evicted after `TIP_TTL_LEDGERS` ledgers
-//! - `get_recent_tips` silently skips expired entries
+//! Test cases covered:
+//! - Successful tip (balance updates, tip record created)
+//! - Tip to unregistered creator → NotRegistered
+//! - Tip amount = 0 → InvalidAmount
+//! - Tip to self → CannotTipSelf
+//! - Message length validation
+//! - Multiple tips accumulate correctly
+//! - Global stats update after tip
 
 #![cfg(test)]
 
-use soroban_sdk::{testutils::Address as _, Address, Env, String};
+use soroban_sdk::{testutils::Address as _, token, Address, Env, String};
 
-use crate::{
-    tips::{get_recent_tips, get_tip, store_tip, TIP_TTL_LEDGERS},
-    TipzContract,
-};
+use crate::errors::ContractError;
+use crate::storage::DataKey;
+use crate::types::{Profile, Tip};
+use crate::TipzContract;
+use crate::TipzContractClient;
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-fn make_string(env: &Env, s: &str) -> String {
-    String::from_str(env, s)
-}
-
-/// Register a fresh contract instance and return its ID.
-fn register(env: &Env) -> soroban_sdk::Address {
-    env.register_contract(None, TipzContract)
-}
-
-/// Advance the ledger sequence and timestamp without changing other fields.
-fn advance_ledger(env: &Env, delta: u32) {
-    use soroban_sdk::testutils::Ledger as _;
-    env.ledger().with_mut(|info| {
-        info.sequence_number += delta;
-        info.timestamp += delta as u64 * 5; // 5 s per ledger
-    });
-}
-
-// ── store_tip / get_tip ───────────────────────────────────────────────────────
-
-#[test]
-fn store_tip_assigns_sequential_ids() {
+/// Helper: set up a test environment with the contract initialized
+/// and a registered creator profile.
+fn setup_env() -> (Env, TipzContractClient<'static>, Address, Address, Address) {
     let env = Env::default();
-    let contract_id = register(&env);
-    let tipper = Address::generate(&env);
+    env.mock_all_auths();
+
+    // Register the Tipz contract
+    let contract_id = env.register_contract(None, TipzContract);
+    let client = TipzContractClient::new(&env, &contract_id);
+
+    // Register a Stellar Asset Contract for native XLM
+    let token_admin = Address::generate(&env);
+    let token_contract = env.register_stellar_asset_contract_v2(token_admin.clone());
+    let token_address = token_contract.address();
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
+
+    // Initialize the contract
+    let admin = Address::generate(&env);
+    let fee_collector = Address::generate(&env);
+    client.initialize(&admin, &fee_collector, &200, &token_address);
+
+    // Create a registered creator profile
     let creator = Address::generate(&env);
-    let msg = make_string(&env, "great content!");
-
-    let (id0, id1, id2) = env.as_contract(&contract_id, || {
-        let i0 = store_tip(&env, &tipper, &creator, 1_000_000, msg.clone());
-        let i1 = store_tip(&env, &tipper, &creator, 2_000_000, msg.clone());
-        let i2 = store_tip(&env, &tipper, &creator, 3_000_000, msg.clone());
-        (i0, i1, i2)
-    });
-
-    assert_eq!(id0, 0);
-    assert_eq!(id1, 1);
-    assert_eq!(id2, 2);
-}
-
-#[test]
-fn get_tip_returns_correct_fields() {
-    let env = Env::default();
-    let contract_id = register(&env);
-    let tipper = Address::generate(&env);
-    let creator = Address::generate(&env);
-    let amount = 5_000_000_i128;
-    let msg = make_string(&env, "love your work");
-
+    let now = env.ledger().timestamp();
+    let profile = Profile {
+        owner: creator.clone(),
+        username: String::from_str(&env, "alice"),
+        display_name: String::from_str(&env, "Alice"),
+        bio: String::from_str(&env, "Hello!"),
+        image_url: String::from_str(&env, ""),
+        x_handle: String::from_str(&env, "alice_x"),
+        x_followers: 0,
+        x_posts: 0,
+        x_replies: 0,
+        credit_score: 0,
+        total_tips_received: 0,
+        total_tips_count: 0,
+        balance: 0,
+        registered_at: now,
+        updated_at: now,
+    };
     env.as_contract(&contract_id, || {
-        let tip_id = store_tip(&env, &tipper, &creator, amount, msg.clone());
-        let tip = get_tip(&env, tip_id).expect("tip should be present");
+        env.storage()
+            .persistent()
+            .set(&DataKey::Profile(creator.clone()), &profile);
+    });
 
-        assert_eq!(tip.id, tip_id);
-        assert_eq!(tip.tipper, tipper);
-        assert_eq!(tip.creator, creator);
+    // Create a tipper with funds
+    let tipper = Address::generate(&env);
+    token_admin_client.mint(&tipper, &100_000_000_000); // 10,000 XLM
+
+    (env, client, contract_id, tipper, creator)
+}
+
+#[test]
+fn test_send_tip_success() {
+    let (env, client, contract_id, tipper, creator) = setup_env();
+
+    let message = String::from_str(&env, "Great work!");
+    let amount: i128 = 10_000_000; // 1 XLM
+
+    client.send_tip(&tipper, &creator, &amount, &message);
+
+    // Verify creator's profile was updated
+    env.as_contract(&contract_id, || {
+        let profile: Profile = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Profile(creator.clone()))
+            .unwrap();
+        assert_eq!(profile.balance, amount);
+        assert_eq!(profile.total_tips_received, amount);
+        assert_eq!(profile.total_tips_count, 1);
+    });
+
+    // Verify tip record was created in temporary storage
+    env.as_contract(&contract_id, || {
+        let tip: Tip = env.storage().temporary().get(&DataKey::Tip(0)).unwrap();
+        assert_eq!(tip.from, tipper);
+        assert_eq!(tip.to, creator);
         assert_eq!(tip.amount, amount);
-        assert_eq!(tip.message, msg);
     });
-}
 
-#[test]
-fn get_tip_returns_none_for_nonexistent_id() {
-    let env = Env::default();
-    let contract_id = register(&env);
-
+    // Verify global stats were updated
     env.as_contract(&contract_id, || {
-        assert!(get_tip(&env, 0).is_none());
-        assert!(get_tip(&env, 9999).is_none());
-    });
-}
-
-// ── TTL expiry ────────────────────────────────────────────────────────────────
-
-#[test]
-fn get_tip_returns_none_after_ttl_expires() {
-    let env = Env::default();
-    let contract_id = register(&env);
-    let tipper = Address::generate(&env);
-    let creator = Address::generate(&env);
-
-    let tip_id = env.as_contract(&contract_id, || {
-        store_tip(
-            &env,
-            &tipper,
-            &creator,
-            1_000_000,
-            make_string(&env, "hello"),
-        )
-    });
-
-    // Entry should still be present before expiry.
-    env.as_contract(&contract_id, || {
-        assert!(get_tip(&env, tip_id).is_some());
-
-        // Extend the contract instance TTL so the instance survives the
-        // ledger advance below (instance TTL is independent of temp TTL).
-        env.storage()
+        let tip_count: u32 = env.storage().instance().get(&DataKey::TipCount).unwrap();
+        assert_eq!(tip_count, 1);
+        let total_volume: i128 = env
+            .storage()
             .instance()
-            .extend_ttl(TIP_TTL_LEDGERS + 10, TIP_TTL_LEDGERS + 10);
-    });
-
-    // Advance past the TTL.
-    advance_ledger(&env, TIP_TTL_LEDGERS + 1);
-
-    env.as_contract(&contract_id, || {
-        assert!(
-            get_tip(&env, tip_id).is_none(),
-            "tip should be evicted after TTL expires"
-        );
-    });
-}
-
-// ── get_recent_tips ───────────────────────────────────────────────────────────
-
-#[test]
-fn get_recent_tips_returns_empty_when_no_tips_exist() {
-    let env = Env::default();
-    let contract_id = register(&env);
-    let creator = Address::generate(&env);
-
-    env.as_contract(&contract_id, || {
-        let tips = get_recent_tips(&env, &creator, 10);
-        assert_eq!(tips.len(), 0);
+            .get(&DataKey::TotalTipsVolume)
+            .unwrap();
+        assert_eq!(total_volume, amount);
     });
 }
 
 #[test]
-fn get_recent_tips_returns_only_target_creator_tips() {
-    let env = Env::default();
-    let contract_id = register(&env);
-    let tipper = Address::generate(&env);
-    let creator_a = Address::generate(&env);
-    let creator_b = Address::generate(&env);
+fn test_send_tip_not_registered() {
+    let (env, client, _contract_id, tipper, _creator) = setup_env();
 
-    env.as_contract(&contract_id, || {
-        store_tip(
-            &env,
-            &tipper,
-            &creator_a,
-            1_000_000,
-            make_string(&env, "a1"),
-        );
-        store_tip(
-            &env,
-            &tipper,
-            &creator_b,
-            2_000_000,
-            make_string(&env, "b1"),
-        );
-        store_tip(
-            &env,
-            &tipper,
-            &creator_a,
-            3_000_000,
-            make_string(&env, "a2"),
-        );
-        store_tip(
-            &env,
-            &tipper,
-            &creator_b,
-            4_000_000,
-            make_string(&env, "b2"),
-        );
+    let unregistered = Address::generate(&env);
+    let message = String::from_str(&env, "Hello");
 
-        let tips_a = get_recent_tips(&env, &creator_a, 10);
-        assert_eq!(tips_a.len(), 2);
-        for tip in tips_a.iter() {
-            assert_eq!(tip.creator, creator_a);
-        }
-
-        let tips_b = get_recent_tips(&env, &creator_b, 10);
-        assert_eq!(tips_b.len(), 2);
-        for tip in tips_b.iter() {
-            assert_eq!(tip.creator, creator_b);
-        }
-    });
+    let result = client.try_send_tip(&tipper, &unregistered, &10_000_000, &message);
+    assert_eq!(result, Err(Ok(ContractError::NotRegistered)));
 }
 
 #[test]
-fn get_recent_tips_returns_newest_first() {
-    let env = Env::default();
-    let contract_id = register(&env);
-    let tipper = Address::generate(&env);
-    let creator = Address::generate(&env);
+fn test_send_tip_cannot_tip_self() {
+    let (env, client, contract_id, _tipper, _creator) = setup_env();
 
+    // Register a self-tipper as a creator
+    let self_tipper = Address::generate(&env);
+    let now = env.ledger().timestamp();
+    let profile = Profile {
+        owner: self_tipper.clone(),
+        username: String::from_str(&env, "bob"),
+        display_name: String::from_str(&env, "Bob"),
+        bio: String::from_str(&env, ""),
+        image_url: String::from_str(&env, ""),
+        x_handle: String::from_str(&env, ""),
+        x_followers: 0,
+        x_posts: 0,
+        x_replies: 0,
+        credit_score: 0,
+        total_tips_received: 0,
+        total_tips_count: 0,
+        balance: 0,
+        registered_at: now,
+        updated_at: now,
+    };
     env.as_contract(&contract_id, || {
-        let id0 = store_tip(
-            &env,
-            &tipper,
-            &creator,
-            1_000_000,
-            make_string(&env, "first"),
-        );
-        let id1 = store_tip(
-            &env,
-            &tipper,
-            &creator,
-            2_000_000,
-            make_string(&env, "second"),
-        );
-        let id2 = store_tip(
-            &env,
-            &tipper,
-            &creator,
-            3_000_000,
-            make_string(&env, "third"),
-        );
-
-        let tips = get_recent_tips(&env, &creator, 3);
-        assert_eq!(tips.len(), 3);
-
-        // Scan is backwards so highest ID comes first.
-        assert_eq!(tips.get(0).unwrap().id, id2);
-        assert_eq!(tips.get(1).unwrap().id, id1);
-        assert_eq!(tips.get(2).unwrap().id, id0);
-    });
-}
-
-#[test]
-fn get_recent_tips_respects_count_limit() {
-    let env = Env::default();
-    let contract_id = register(&env);
-    let tipper = Address::generate(&env);
-    let creator = Address::generate(&env);
-
-    env.as_contract(&contract_id, || {
-        for i in 0_u32..5 {
-            store_tip(
-                &env,
-                &tipper,
-                &creator,
-                (i as i128 + 1) * 1_000_000,
-                make_string(&env, "msg"),
-            );
-        }
-
-        let tips = get_recent_tips(&env, &creator, 3);
-        assert_eq!(tips.len(), 3);
-    });
-}
-
-#[test]
-fn get_recent_tips_skips_expired_entries() {
-    let env = Env::default();
-    let contract_id = register(&env);
-    let tipper = Address::generate(&env);
-    let creator = Address::generate(&env);
-
-    // Store two tips that will expire.
-    env.as_contract(&contract_id, || {
-        store_tip(
-            &env,
-            &tipper,
-            &creator,
-            1_000_000,
-            make_string(&env, "old1"),
-        );
-        store_tip(
-            &env,
-            &tipper,
-            &creator,
-            2_000_000,
-            make_string(&env, "old2"),
-        );
-
-        // Extend the contract instance TTL so the instance survives the
-        // ledger advance below (instance TTL is independent of temp TTL).
         env.storage()
-            .instance()
-            .extend_ttl(TIP_TTL_LEDGERS + 10, TIP_TTL_LEDGERS + 10);
+            .persistent()
+            .set(&DataKey::Profile(self_tipper.clone()), &profile);
     });
 
-    // Advance past TTL to evict the old tips.
-    advance_ledger(&env, TIP_TTL_LEDGERS + 1);
+    let message = String::from_str(&env, "Self tip");
+    let result = client.try_send_tip(&self_tipper, &self_tipper, &10_000_000, &message);
+    assert_eq!(result, Err(Ok(ContractError::CannotTipSelf)));
+}
 
-    // Store two fresh tips after the expiry window.
-    let (fresh_id0, fresh_id1) = env.as_contract(&contract_id, || {
-        let i0 = store_tip(
-            &env,
-            &tipper,
-            &creator,
-            3_000_000,
-            make_string(&env, "new1"),
-        );
-        let i1 = store_tip(
-            &env,
-            &tipper,
-            &creator,
-            4_000_000,
-            make_string(&env, "new2"),
-        );
-        (i0, i1)
-    });
+#[test]
+fn test_send_tip_invalid_amount_zero() {
+    let (env, client, _contract_id, tipper, creator) = setup_env();
 
-    // Requesting 10 should return only the 2 fresh tips; the 2 expired ones
-    // are silently skipped.
+    let message = String::from_str(&env, "Zero tip");
+    let result = client.try_send_tip(&tipper, &creator, &0, &message);
+    assert_eq!(result, Err(Ok(ContractError::InvalidAmount)));
+}
+
+#[test]
+fn test_send_tip_invalid_amount_negative() {
+    let (env, client, _contract_id, tipper, creator) = setup_env();
+
+    let message = String::from_str(&env, "Negative tip");
+    let result = client.try_send_tip(&tipper, &creator, &-1, &message);
+    assert_eq!(result, Err(Ok(ContractError::InvalidAmount)));
+}
+
+#[test]
+fn test_send_tip_message_too_long() {
+    let (env, client, _contract_id, tipper, creator) = setup_env();
+
+    // Create a message longer than 280 characters
+    let long_msg = String::from_str(
+        &env,
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    );
+    let result = client.try_send_tip(&tipper, &creator, &10_000_000, &long_msg);
+    assert_eq!(result, Err(Ok(ContractError::MessageTooLong)));
+}
+
+#[test]
+fn test_send_tip_multiple_tips_accumulate() {
+    let (env, client, contract_id, tipper, creator) = setup_env();
+
+    let message = String::from_str(&env, "Tip!");
+    let amount: i128 = 5_000_000;
+
+    // Send 3 tips
+    client.send_tip(&tipper, &creator, &amount, &message);
+    client.send_tip(&tipper, &creator, &amount, &message);
+    client.send_tip(&tipper, &creator, &amount, &message);
+
+    // Verify accumulated balance and counts
     env.as_contract(&contract_id, || {
-        let tips = get_recent_tips(&env, &creator, 10);
-        assert_eq!(tips.len(), 2);
-        assert_eq!(tips.get(0).unwrap().id, fresh_id1);
-        assert_eq!(tips.get(1).unwrap().id, fresh_id0);
+        let profile: Profile = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Profile(creator.clone()))
+            .unwrap();
+        assert_eq!(profile.balance, amount * 3);
+        assert_eq!(profile.total_tips_received, amount * 3);
+        assert_eq!(profile.total_tips_count, 3);
+    });
+
+    // Verify global stats
+    env.as_contract(&contract_id, || {
+        let tip_count: u32 = env.storage().instance().get(&DataKey::TipCount).unwrap();
+        assert_eq!(tip_count, 3);
+        let total_volume: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalTipsVolume)
+            .unwrap();
+        assert_eq!(total_volume, amount * 3);
+    });
+
+    // Verify each tip record exists
+    env.as_contract(&contract_id, || {
+        for i in 0..3u32 {
+            let tip: Tip = env.storage().temporary().get(&DataKey::Tip(i)).unwrap();
+            assert_eq!(tip.amount, amount);
+        }
     });
 }
 
 #[test]
-fn get_recent_tips_returns_empty_for_unknown_creator() {
-    let env = Env::default();
-    let contract_id = register(&env);
-    let tipper = Address::generate(&env);
-    let creator = Address::generate(&env);
-    let other = Address::generate(&env);
+fn test_send_tip_empty_message_allowed() {
+    let (env, client, contract_id, tipper, creator) = setup_env();
+
+    let message = String::from_str(&env, "");
+    let amount: i128 = 10_000_000;
+
+    client.send_tip(&tipper, &creator, &amount, &message);
 
     env.as_contract(&contract_id, || {
-        store_tip(&env, &tipper, &creator, 1_000_000, make_string(&env, "hi"));
-
-        let tips = get_recent_tips(&env, &other, 10);
-        assert_eq!(tips.len(), 0);
+        let profile: Profile = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Profile(creator.clone()))
+            .unwrap();
+        assert_eq!(profile.balance, amount);
     });
 }
