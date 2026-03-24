@@ -11,11 +11,11 @@
 //! - AdminChanged(old_admin, new_admin)
 //! - FeeUpdated(old_fee, new_fee)
 
-// TODO: Implement remaining event emission helpers in issue #6
-
 use soroban_sdk::{symbol_short, Address, Env, String};
 
 /// Emit a `ProfileRegistered` event containing the creator's address and username.
+///
+/// Topic: ("profile", "registered")
 pub fn emit_profile_registered(env: &Env, address: &Address, username: &String) {
     env.events().publish(
         (symbol_short!("profile"), symbol_short!("register")),
@@ -23,6 +23,20 @@ pub fn emit_profile_registered(env: &Env, address: &Address, username: &String) 
     );
 }
 
+/// Emit a `ProfileUpdated` event when a profile is modified.
+///
+/// Topic: ("profile", "updated")
+#[allow(dead_code)]
+pub fn emit_profile_updated(env: &Env, address: &Address) {
+    env.events().publish(
+        (symbol_short!("profile"), symbol_short!("updated")),
+        address.clone(),
+    );
+}
+
+/// Emit a `TipSent` event when a tip is successfully sent.
+///
+/// Topic: ("tip", "sent")
 pub fn emit_tip_sent(env: &Env, from: &Address, to: &Address, amount: i128) {
     env.events().publish(
         (symbol_short!("tip"), symbol_short!("sent")),
@@ -30,9 +44,45 @@ pub fn emit_tip_sent(env: &Env, from: &Address, to: &Address, amount: i128) {
     );
 }
 
+/// Emit a `TipsWithdrawn` event when a creator withdraws their tips.
+///
+/// Topic: ("tip", "withdrawn")
+#[allow(dead_code)]
+pub fn emit_tips_withdrawn(env: &Env, address: &Address, amount: i128, fee: i128) {
+    env.events().publish(
+        (symbol_short!("tip"), symbol_short!("withdrawn")),
+        (address.clone(), amount, fee),
+    );
+}
+
+/// Emit a `CreditScoreUpdated` event when a creator's credit score changes.
+///
+/// Topic: ("credit", "updated")
 pub fn emit_credit_score_updated(env: &Env, address: &Address, old_score: u32, new_score: u32) {
     env.events().publish(
         (symbol_short!("credit"), symbol_short!("updated")),
         (address.clone(), old_score, new_score),
+    );
+}
+
+/// Emit an `AdminChanged` event when the admin role is transferred.
+///
+/// Topic: ("admin", "changed")
+#[allow(dead_code)]
+pub fn emit_admin_changed(env: &Env, old_admin: &Address, new_admin: &Address) {
+    env.events().publish(
+        (symbol_short!("admin"), symbol_short!("changed")),
+        (old_admin.clone(), new_admin.clone()),
+    );
+}
+
+/// Emit a `FeeUpdated` event when the withdrawal fee is changed.
+///
+/// Topic: ("fee", "updated")
+#[allow(dead_code)]
+pub fn emit_fee_updated(env: &Env, old_bps: u32, new_bps: u32) {
+    env.events().publish(
+        (symbol_short!("fee"), symbol_short!("updated")),
+        (old_bps, new_bps),
     );
 }
