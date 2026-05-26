@@ -30,14 +30,18 @@ const CTASection: React.FC = () => {
   };
 
   return (
-    <section className="border-t-3 border-black bg-off-white px-4 py-20">
+    <section
+      role="region"
+      aria-labelledby="landing-cta-heading"
+      className="border-t-3 border-black bg-off-white px-4 py-20"
+    >
       <div className="mx-auto max-w-4xl text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="mb-6 text-5xl font-black md:text-6xl">
+          <h2 id="landing-cta-heading" className="mb-6 text-5xl font-black md:text-6xl">
             {t("landing.cta.heading")}
           </h2>
           <p className="mb-12 text-xl text-gray-700 md:text-2xl">

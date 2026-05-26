@@ -138,7 +138,7 @@ const TipPage: React.FC = () => {
 
   return (
     <PageContainer maxWidth="xl" className="space-y-8 py-10">
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <section aria-labelledby="tip-creator-heading" className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Card className="space-y-6" padding="lg">
           <div className="flex flex-col gap-5 border-b-2 border-dashed border-black pb-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
@@ -152,7 +152,7 @@ const TipPage: React.FC = () => {
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
                   Tip creator
                 </p>
-                <h1 className="text-3xl font-black uppercase">
+                <h1 id="tip-creator-heading" className="text-3xl font-black uppercase">
                   {creator.displayName}
                 </h1>
                 <p className="text-sm font-bold text-gray-600">
@@ -322,7 +322,7 @@ const TipPage: React.FC = () => {
         </Card>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+      <section role="region" aria-label="Tipping context and recent activity" className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <Card className="space-y-4">
           <div className="flex items-center gap-3">
             <MessageSquare size={18} />

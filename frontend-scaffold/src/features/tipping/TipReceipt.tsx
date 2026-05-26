@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import { Download, ExternalLink, Mail } from 'lucide-react';
 import { getExplorerTxUrl } from '../../helpers/network';
 import Button from '../../components/ui/Button';
+import PageContainer from '../../components/layout/PageContainer';
 
 interface TipReceiptProps {
   txHash?: string;
@@ -44,14 +45,14 @@ const TipReceipt: React.FC<TipReceiptProps> = ({
   const txUrl = txHash ? getExplorerTxUrl(txHash) : "#";
 
   return (
-    <div className="mt-8">
+    <PageContainer maxWidth="md" ariaLabel="Tip receipt content" className="mt-8">
       <div 
         ref={receiptRef}
         className="bg-white border-2 border-black p-6 max-w-md mx-auto space-y-4"
         style={{ printColorAdjust: 'exact' }}
       >
         <div className="text-center pb-4 border-b-2 border-black border-dashed">
-          <h2 className="text-2xl font-black uppercase tracking-widest">TIPZ RECEIPT</h2>
+          <h1 className="text-2xl font-black uppercase tracking-widest">TIPZ RECEIPT</h1>
           <p className="text-sm font-bold text-gray-500 mt-1">
             {new Date(displayTimestamp).toLocaleString()}
           </p>
@@ -90,7 +91,11 @@ const TipReceipt: React.FC<TipReceiptProps> = ({
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+      <section
+        role="region"
+        aria-label="Receipt actions"
+        className="flex flex-col sm:flex-row gap-3 justify-center mt-6"
+      >
         <Button onClick={handleDownload} icon={<Download size={18} />}>
           Download
         </Button>
@@ -107,8 +112,8 @@ const TipReceipt: React.FC<TipReceiptProps> = ({
         <Button variant="outline" icon={<Mail size={18} />} disabled title="Email receipt option (future)">
           Email
         </Button>
-      </div>
-    </div>
+      </section>
+    </PageContainer>
   );
 };
 

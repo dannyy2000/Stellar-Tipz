@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, BarChart3, Settings, Users, Lock, Loader } from 'lucide-react';
 import StatsPanel from './StatsPanel';
+import PageContainer from '@/components/layout/PageContainer';
 
 interface AdminDashboardProps {
   isAdmin?: boolean;
@@ -19,8 +20,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
+      <PageContainer maxWidth="lg" ariaLabel="Admin access content" className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <Lock className="w-12 h-12 text-red-600 mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">Unauthorized</h1>
@@ -34,29 +35,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </p>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+    <PageContainer maxWidth="xl" ariaLabel="Admin dashboard content" className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
           <p className="text-gray-600">Manage contract settings and monitor platform activity</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-600" />
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="flex border-b">
+        <nav aria-label="Admin sections" className="bg-white rounded-lg shadow mb-6">
+          <div role="tablist" aria-label="Admin section tabs" className="flex border-b">
             <button
+              role="tab"
+              aria-selected={activeTab === 'stats'}
               onClick={() => setActiveTab('stats')}
               className={`flex-1 px-4 py-3 font-medium text-sm flex items-center justify-center gap-2 transition ${
                 activeTab === 'stats'
@@ -68,6 +71,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Stats
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'verification'}
               onClick={() => setActiveTab('verification')}
               className={`flex-1 px-4 py-3 font-medium text-sm flex items-center justify-center gap-2 transition ${
                 activeTab === 'verification'
@@ -79,6 +84,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Verification
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'users'}
               onClick={() => setActiveTab('users')}
               className={`flex-1 px-4 py-3 font-medium text-sm flex items-center justify-center gap-2 transition ${
                 activeTab === 'users'
@@ -90,6 +97,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Users
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'settings'}
               onClick={() => setActiveTab('settings')}
               className={`flex-1 px-4 py-3 font-medium text-sm flex items-center justify-center gap-2 transition ${
                 activeTab === 'settings'
@@ -101,10 +110,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Settings
             </button>
           </div>
-        </div>
+        </nav>
 
         {/* Tab Content */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <section role="region" aria-label="Admin section content" className="bg-white rounded-lg shadow p-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader className="w-6 h-6 animate-spin text-blue-600" />
@@ -118,9 +127,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           ) : (
             <SettingsPanel />
           )}
-        </div>
+        </section>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

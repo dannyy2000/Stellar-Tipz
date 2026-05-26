@@ -101,6 +101,7 @@ const Header: React.FC = () => {
   return (
     <header
       ref={headerRef}
+      aria-label="Site header"
       className="relative z-30 border-b-3 border-black bg-white dark:border-white dark:bg-black"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
@@ -113,7 +114,7 @@ const Header: React.FC = () => {
           <span className="text-xl">*</span>
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav aria-label="Primary navigation" className="hidden items-center gap-6 md:flex">
           <Link
             to="/leaderboard"
             className="text-sm font-bold uppercase tracking-wide hover:underline"

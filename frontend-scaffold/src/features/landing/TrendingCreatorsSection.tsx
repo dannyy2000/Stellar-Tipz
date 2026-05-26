@@ -36,6 +36,7 @@ const TrendingCreatorsSection: React.FC = () => {
   return (
     <section
       id="trending"
+      role="region"
       className="overflow-hidden bg-white py-24 px-6"
       aria-labelledby="trending-heading"
     >

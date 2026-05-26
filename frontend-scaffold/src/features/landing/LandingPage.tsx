@@ -22,12 +22,21 @@ const LandingPage: React.FC = () => {
   usePageTitle(t("landing.title"));
 
   return (
-    <div className="min-h-screen bg-white">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      aria-label="Landing page content"
+      className="min-h-screen bg-white focus:outline-none"
+    >
       <HeroSection />
       <Divider />
       <FeaturesSection />
       <Divider />
-      <section id="how-it-works">
+      <section
+        id="how-it-works"
+        role="region"
+        aria-label="How it works"
+      >
         <HowItWorksSection />
       </section>
       <Divider />
@@ -44,7 +53,7 @@ const LandingPage: React.FC = () => {
       </ErrorBoundary>
       <Divider />
       <CTASection />
-    </div>
+    </main>
   );
 };
 

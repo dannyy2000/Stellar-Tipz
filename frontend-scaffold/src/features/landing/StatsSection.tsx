@@ -61,9 +61,14 @@ const StatsSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="py-20 px-4 bg-off-white border-t-3 border-b-3 border-black">
+    <section
+      role="region"
+      aria-labelledby="stats-heading"
+      className="py-20 px-4 bg-off-white border-t-3 border-b-3 border-black"
+    >
       <div className="max-w-6xl mx-auto">
         <motion.h2
+          id="stats-heading"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

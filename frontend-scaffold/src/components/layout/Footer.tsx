@@ -10,7 +10,10 @@ const Footer: React.FC = () => {
   const { language, languageNames, setLanguage, t } = useI18n();
 
   return (
-    <footer className="border-t-3 border-black bg-white py-10 dark:border-white dark:bg-black">
+    <footer
+      aria-label="Site footer"
+      className="border-t-3 border-black bg-white py-10 dark:border-white dark:bg-black"
+    >
       <div className="mx-auto max-w-6xl px-4">
         <div className="mb-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-3">
@@ -47,7 +50,7 @@ const Footer: React.FC = () => {
             </label>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <nav aria-label="Footer product navigation" className="flex flex-col gap-2">
             <h3 className="text-sm font-black uppercase tracking-wide">
               {t("footer.product")}
             </h3>
@@ -69,9 +72,9 @@ const Footer: React.FC = () => {
             >
               {t("nav.dashboard")}
             </Link>
-          </div>
+          </nav>
 
-          <div className="flex flex-col gap-2">
+          <nav aria-label="Footer resources navigation" className="flex flex-col gap-2">
             <h3 className="text-sm font-black uppercase tracking-wide">
               {t("footer.resources")}
             </h3>
@@ -97,9 +100,9 @@ const Footer: React.FC = () => {
             >
               {t("footer.contractSpec")}
             </a>
-          </div>
+          </nav>
 
-          <div className="flex flex-col gap-2">
+          <section aria-label="Community links" className="flex flex-col gap-2">
             <h3 className="text-sm font-black uppercase tracking-wide">
               {t("footer.community")}
             </h3>
@@ -119,7 +122,7 @@ const Footer: React.FC = () => {
             >
               <Github size={14} /> Stellar Discord
             </a>
-          </div>
+          </section>
         </div>
 
         <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-200 pt-6 dark:border-gray-700 sm:flex-row">

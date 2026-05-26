@@ -78,7 +78,11 @@ export default function TopCreatorsSection() {
   };
 
   return (
-    <section className="py-24 px-6 bg-off-white overflow-hidden">
+    <section
+      role="region"
+      aria-labelledby="top-creators-heading"
+      className="py-24 px-6 bg-off-white overflow-hidden"
+    >
       <div className="max-w-7xl mx-auto space-y-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-4">
@@ -86,7 +90,10 @@ export default function TopCreatorsSection() {
               <Trophy size={14} />
               Leaderboard
             </div>
-            <h2 className="text-4xl md:text-5xl font-black uppercase leading-none">
+            <h2
+              id="top-creators-heading"
+              className="text-4xl md:text-5xl font-black uppercase leading-none"
+            >
               Top Creators
             </h2>
             <p className="text-lg font-bold text-gray-600 max-w-xl">

@@ -47,22 +47,37 @@ const EmbedWidget: React.FC<EmbedWidgetProps> = ({
 
   if (loading) {
     return (
-      <div className={`w-full h-full flex items-center justify-center p-4 ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'}`}>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        aria-label="Embedded tip widget"
+        className={`w-full h-full flex items-center justify-center p-4 focus:outline-none ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'}`}
+      >
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-current"></div>
-      </div>
+      </main>
     );
   }
 
   if (!creator) {
     return (
-      <div className={`w-full h-full flex items-center justify-center p-4 text-center ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'}`}>
-        <p className="font-bold">Creator not found</p>
-      </div>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        aria-label="Embedded tip widget"
+        className={`w-full h-full flex items-center justify-center p-4 text-center focus:outline-none ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'}`}
+      >
+        <h1 className="font-bold">Creator not found</h1>
+      </main>
     );
   }
 
   return (
-    <div className={`w-full h-full p-4 overflow-hidden flex flex-col ${theme === 'dark' ? 'dark bg-black text-white' : 'bg-white text-black'}`}>
+    <main
+      id="main-content"
+      tabIndex={-1}
+      aria-label="Embedded tip widget"
+      className={`w-full h-full p-4 overflow-hidden flex flex-col focus:outline-none ${theme === 'dark' ? 'dark bg-black text-white' : 'bg-white text-black'}`}
+    >
       <Card className="flex-1 flex flex-col items-center justify-center text-center gap-4 border-2 border-current shadow-brutalist bg-transparent">
         <Avatar
           address={creator.owner}
@@ -73,7 +88,7 @@ const EmbedWidget: React.FC<EmbedWidgetProps> = ({
         />
         
         <div>
-          <h3 className="font-black uppercase text-lg leading-tight">{creator.displayName}</h3>
+          <h1 className="font-black uppercase text-lg leading-tight">{creator.displayName}</h1>
           <p className="text-xs font-bold opacity-70">@{creator.username}</p>
         </div>
 
@@ -123,7 +138,7 @@ const EmbedWidget: React.FC<EmbedWidgetProps> = ({
           Powered by Tipz <ExternalLink size={10} />
         </a>
       </Card>
-    </div>
+    </main>
   );
 };
 

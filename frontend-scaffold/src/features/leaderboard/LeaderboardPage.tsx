@@ -35,12 +35,12 @@ const LeaderboardPage: React.FC = () => {
 
   return (
     <PageContainer maxWidth="xl" className="space-y-8 py-10">
-      <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+      <section aria-labelledby="leaderboard-heading" className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <Card className="space-y-5 bg-yellow-100" padding="lg" hover>
           <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-600">
             Leaderboard
           </p>
-          <h1 className="flex items-center gap-3 text-4xl font-black uppercase">
+          <h1 id="leaderboard-heading" className="flex items-center gap-3 text-4xl font-black uppercase">
             <Trophy size={34} />
             Top creators
           </h1>
@@ -82,10 +82,10 @@ const LeaderboardPage: React.FC = () => {
         </div>
       </section>
 
-      <section>
+      <section role="region" aria-labelledby="full-rankings-heading">
         <Card className="space-y-6" padding="lg">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl font-black uppercase">Full rankings</h2>
+            <h2 id="full-rankings-heading" className="text-2xl font-black uppercase">Full rankings</h2>
             <Link to="/dashboard" className="text-sm font-black uppercase underline">
               Open your dashboard
             </Link>

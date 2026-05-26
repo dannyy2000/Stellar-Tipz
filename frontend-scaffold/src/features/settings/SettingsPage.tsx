@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Palette, Lock, RotateCcw, Loader } from 'lucide-react';
+import PageContainer from '@/components/layout/PageContainer';
 
 interface Settings {
   tipNotifications: boolean;
@@ -75,22 +76,22 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+    <PageContainer maxWidth="md" ariaLabel="Settings content" className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Settings</h1>
 
         {saveSuccess && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div role="status" aria-live="polite" className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm text-green-700">Settings saved successfully</p>
           </div>
         )}
 
         {/* Notifications Section */}
-        <div className="bg-white rounded-lg shadow mb-6">
+        <section role="region" aria-labelledby="notifications-heading" className="bg-white rounded-lg shadow mb-6">
           <div className="p-6 border-b">
             <div className="flex items-center gap-3 mb-4">
               <Bell className="w-5 h-5 text-blue-600" />
-              <h2 className="text-xl font-semibold">Notifications</h2>
+              <h2 id="notifications-heading" className="text-xl font-semibold">Notifications</h2>
             </div>
             <p className="text-sm text-gray-600">Manage your notification preferences</p>
           </div>
@@ -124,14 +125,14 @@ export const SettingsPage: React.FC = () => {
               />
             </label>
           </div>
-        </div>
+        </section>
 
         {/* Display Section */}
-        <div className="bg-white rounded-lg shadow mb-6">
+        <section role="region" aria-labelledby="display-heading" className="bg-white rounded-lg shadow mb-6">
           <div className="p-6 border-b">
             <div className="flex items-center gap-3 mb-4">
               <Palette className="w-5 h-5 text-purple-600" />
-              <h2 className="text-xl font-semibold">Display</h2>
+              <h2 id="display-heading" className="text-xl font-semibold">Display</h2>
             </div>
             <p className="text-sm text-gray-600">Customize your display preferences</p>
           </div>
@@ -176,14 +177,14 @@ export const SettingsPage: React.FC = () => {
               </select>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Privacy Section */}
-        <div className="bg-white rounded-lg shadow mb-6">
+        <section role="region" aria-labelledby="privacy-heading" className="bg-white rounded-lg shadow mb-6">
           <div className="p-6 border-b">
             <div className="flex items-center gap-3 mb-4">
               <Lock className="w-5 h-5 text-green-600" />
-              <h2 className="text-xl font-semibold">Privacy</h2>
+              <h2 id="privacy-heading" className="text-xl font-semibold">Privacy</h2>
             </div>
             <p className="text-sm text-gray-600">Control your profile visibility</p>
           </div>
@@ -208,7 +209,7 @@ export const SettingsPage: React.FC = () => {
               />
             </label>
           </div>
-        </div>
+        </section>
 
         {/* Action Buttons */}
         <div className="flex gap-3">
@@ -236,7 +237,7 @@ export const SettingsPage: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

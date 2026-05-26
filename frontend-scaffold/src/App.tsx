@@ -18,6 +18,7 @@ const AppRoutes: React.FC = () => {
   const { t } = useI18n();
   const { isOffline } = useOfflineStatus();
   const [updateReady, setUpdateReady] = React.useState(false);
+  const skipLinkText = t("app.skipToMain");
 
   React.useEffect(() => {
     const unsub = onUpdateAvailable(() => setUpdateReady(true));
@@ -59,7 +60,7 @@ const AppRoutes: React.FC = () => {
             href="#main-content"
             className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:bg-black focus:text-white focus:px-4 focus:py-2 focus:font-black focus:outline-none"
           >
-            {t("app.skipToMain")}
+            {skipLinkText === "app.skipToMain" ? "Skip to content" : skipLinkText}
           </a>
           <Header />
           <div className="flex-1">

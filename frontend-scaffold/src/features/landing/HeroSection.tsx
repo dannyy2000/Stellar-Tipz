@@ -19,6 +19,7 @@ const HeroSection: React.FC = () => {
   return (
     <section
       id="hero"
+      aria-labelledby="landing-title"
       className="relative flex min-h-screen items-center justify-center px-4 py-20"
     >
       <div className="mx-auto max-w-6xl text-center">
@@ -28,7 +29,7 @@ const HeroSection: React.FC = () => {
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <h1 className="mb-4 text-8xl font-black tracking-tight md:text-9xl">
+          <h1 id="landing-title" className="mb-4 text-8xl font-black tracking-tight md:text-9xl">
             TIPZ
             <motion.span
               initial={{ scale: 0 }}

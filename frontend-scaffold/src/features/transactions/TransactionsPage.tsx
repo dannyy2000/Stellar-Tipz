@@ -117,12 +117,12 @@ const TransactionsPage: React.FC = () => {
   return (
     <PageContainer maxWidth="xl" className="space-y-8 py-10">
       {/* ── Header ── */}
-      <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <section aria-labelledby="transactions-heading" className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
             Wallet activity
           </p>
-          <h1 className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
+          <h1 id="transactions-heading" className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
             <History size={32} />
             Transactions
           </h1>
@@ -179,6 +179,7 @@ const TransactionsPage: React.FC = () => {
         role="tabpanel"
         id={`tabpanel-${activeTab}`}
         aria-labelledby={`tab-${activeTab}`}
+        aria-label={`${activeTab} transactions`}
         className="space-y-5"
       >
         {/* Date range filter */}
@@ -250,12 +251,12 @@ const TransactionsPage: React.FC = () => {
 
 // ── Sub-component ──────────────────────────────────────────────────────────
 const PageHeader: React.FC = () => (
-  <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+  <section aria-labelledby="transactions-heading" className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
     <div>
       <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
         Wallet activity
       </p>
-      <h1 className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
+      <h1 id="transactions-heading" className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
         <History size={32} />
         Transactions
       </h1>

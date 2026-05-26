@@ -140,10 +140,14 @@ const DashboardPage: React.FC = () => {
             <OverviewTab />
             <TipQRCode username={creator.username} />
           </div>
-          <div className="border-4 border-black bg-white p-6 shadow-brutalist">
-            <h3 className="text-xl font-black uppercase mb-4">Earnings History</h3>
+          <section
+            role="region"
+            aria-labelledby="earnings-history-heading"
+            className="border-4 border-black bg-white p-6 shadow-brutalist"
+          >
+            <h2 id="earnings-history-heading" className="text-xl font-black uppercase mb-4">Earnings History</h2>
             <EarningsChart tips={tips} />
-          </div>
+          </section>
         </div>
       ),
     },
@@ -184,12 +188,12 @@ const DashboardPage: React.FC = () => {
   return (
     <DashboardProvider value={dashboard}>
     <PageContainer maxWidth="xl" className="space-y-8 py-10">
-      <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <section aria-labelledby="dashboard-heading" className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
             Creator dashboard
           </p>
-          <h1 className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
+          <h1 id="dashboard-heading" className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
             <LayoutDashboard size={32} />
             Dashboard
           </h1>
@@ -212,7 +216,11 @@ const DashboardPage: React.FC = () => {
       </section>
 
       {latestTip && unseenCount > 0 && (
-        <div className="flex flex-col gap-3 border-3 border-black bg-yellow-100 p-4 shadow-brutalist sm:flex-row sm:items-center sm:justify-between">
+        <section
+          role="region"
+          aria-label="New tip notification"
+          className="flex flex-col gap-3 border-3 border-black bg-yellow-100 p-4 shadow-brutalist sm:flex-row sm:items-center sm:justify-between"
+        >
           <div className="flex items-start gap-3">
             <Bell size={22} className="mt-1 shrink-0" />
             <div>
@@ -233,7 +241,7 @@ const DashboardPage: React.FC = () => {
           >
             Mark seen
           </Button>
-        </div>
+        </section>
       )}
 
       <Tabs tabs={tabs} defaultTab="overview" />

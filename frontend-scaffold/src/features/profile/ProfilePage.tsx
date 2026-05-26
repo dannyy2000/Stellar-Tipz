@@ -156,15 +156,15 @@ const ProfilePage: React.FC = () => {
   return (
     <PageContainer maxWidth="xl" className="space-y-10 py-10">
       {/* Main Profile View Card */}
-      <section>
+      <section aria-label="Profile summary">
         <ProfileView profile={profile} />
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
         <div className="space-y-10">
           {/* Stats Section */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-black uppercase tracking-tight">
+          <section role="region" aria-labelledby="profile-performance-heading" className="space-y-4">
+            <h2 id="profile-performance-heading" className="text-2xl font-black uppercase tracking-tight">
               Your Performance
             </h2>
             <ProfileStats
@@ -176,9 +176,9 @@ const ProfilePage: React.FC = () => {
           </section>
 
           {/* Activity Feed Section */}
-          <section className="space-y-4">
+          <section role="region" aria-labelledby="recent-activity-heading" className="space-y-4">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black uppercase tracking-tight">
+              <h2 id="recent-activity-heading" className="text-2xl font-black uppercase tracking-tight">
                 Recent Activity
               </h2>
               <Link
@@ -194,8 +194,8 @@ const ProfilePage: React.FC = () => {
           </section>
 
           {/* Embed Section */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-black uppercase tracking-tight">
+          <section role="region" aria-labelledby="share-embed-heading" className="space-y-4">
+            <h2 id="share-embed-heading" className="text-2xl font-black uppercase tracking-tight">
               Share & Embed
             </h2>
             <Card padding="lg" className="border-4 shadow-brutalist">
@@ -205,7 +205,7 @@ const ProfilePage: React.FC = () => {
         </div>
 
         {/* Sidebar Actions */}
-        <aside className="space-y-6">
+        <aside aria-label="Profile actions" className="space-y-6">
           <TipQRCode username={profile.username} />
 
           <Card
