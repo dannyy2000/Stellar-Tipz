@@ -20,13 +20,11 @@ import {
 import { NetworkDetails } from "../helpers/network";
 import { stroopToXlm, mapContractResponse } from "../helpers/format";
 import { ERRORS } from "../helpers/error";
-import { buildContractCacheKey, contractQueryCache } from "./cache";
-
-// Cache TTLs for read-only token metadata. Symbol/name/decimals are immutable
-// for a given contract, so they can be cached aggressively. Balances change
-// often, so they use a short TTL and are invalidated on writes.
-const TOKEN_METADATA_TTL_MS = 60 * 60 * 1000; // 1 hour
-const TOKEN_BALANCE_TTL_MS = 5 * 1000; // 5 seconds
+import { LeaderboardEntry } from "../types/contract";
+import {
+  buildContractCacheKey,
+  contractQueryCache,
+} from "./cache";
 
 // TODO: once soroban supports estimated fees, we can fetch this
 export const BASE_FEE = "100";
@@ -42,6 +40,149 @@ export const SendTxStatus: {
 };
 
 export const XLM_DECIMALS = 7;
+
+/** Default TTL for leaderboard RPC cache (configurable via env). */
+export const LEADERBOARD_CACHE_TTL_MS = Number(
+  import.meta.env.VITE_LEADERBOARD_CACHE_TTL_MS ?? 60_000,
+);
+
+/** Target max time for a leaderboard batch fetch (acceptance: load < 2s). */
+export const LEADERBOARD_PERF_BUDGET_MS = 2_000;
+
+/** Default page size for client-side leaderboard pagination. */
+export const LEADERBOARD_DEFAULT_PAGE_SIZE = 20;
+
+export interface LeaderboardFetchContext {
+  contractId: string;
+  network: string;
+  networkPassphrase: string;
+  sourcePublicKey: string;
+  server: SorobanRpc.Server;
+}
+
+export interface LeaderboardPageSlice {
+  items: LeaderboardEntry[];
+  hasMore: boolean;
+  nextOffset?: number;
+}
+
+let lastLeaderboardQueryMs = 0;
+
+export const getLastLeaderboardQueryMs = (): number => lastLeaderboardQueryMs;
+
+const recordLeaderboardQueryTime = (elapsedMs: number): void => {
+  lastLeaderboardQueryMs = elapsedMs;
+  if (elapsedMs > LEADERBOARD_PERF_BUDGET_MS) {
+    console.warn(
+      `[leaderboard] Query took ${elapsedMs.toFixed(0)}ms (budget: ${LEADERBOARD_PERF_BUDGET_MS}ms)`,
+    );
+  }
+};
+
+/**
+ * Slice a full leaderboard batch for UI pagination (supports 1000+ cached entries).
+ */
+export const paginateLeaderboard = (
+  entries: LeaderboardEntry[],
+  offset: number,
+  pageSize: number,
+): LeaderboardPageSlice => {
+  const items = entries.slice(offset, offset + pageSize);
+  const nextOffset = offset + pageSize;
+  return {
+    items,
+    hasMore: nextOffset < entries.length,
+    nextOffset: nextOffset < entries.length ? nextOffset : undefined,
+  };
+};
+
+/**
+ * Merge refreshed leaderboard data without discarding already-loaded pages.
+ */
+export const mergeLeaderboardEntries = (
+  previous: LeaderboardEntry[],
+  incoming: LeaderboardEntry[],
+): LeaderboardEntry[] => {
+  if (incoming.length === 0) {
+    return previous;
+  }
+  if (previous.length === 0) {
+    return incoming;
+  }
+
+  const byAddress = new Map(previous.map((entry) => [entry.address, entry]));
+  for (const entry of incoming) {
+    byAddress.set(entry.address, entry);
+  }
+
+  const rankIndex = new Map(incoming.map((entry, index) => [entry.address, index]));
+  return [...byAddress.values()].sort((a, b) => {
+    const rankA = rankIndex.get(a.address);
+    const rankB = rankIndex.get(b.address);
+    if (rankA !== undefined && rankB !== undefined) {
+      return rankA - rankB;
+    }
+    if (rankA !== undefined) {
+      return -1;
+    }
+    if (rankB !== undefined) {
+      return 1;
+    }
+    return Number(BigInt(b.totalTipsReceived) - BigInt(a.totalTipsReceived));
+  });
+};
+
+export const invalidateLeaderboardCache = (): void => {
+  contractQueryCache.invalidateAll();
+};
+
+const simulateLeaderboardBatch = async (
+  ctx: LeaderboardFetchContext,
+  limit: number,
+): Promise<LeaderboardEntry[]> => {
+  const contract = new Contract(ctx.contractId);
+  const txBuilder = getSimulationTxBuilder(
+    ctx.sourcePublicKey,
+    BASE_FEE,
+    ctx.networkPassphrase,
+  );
+  const tx = txBuilder
+    .addOperation(
+      contract.call(
+        "get_leaderboard",
+        nativeToScVal(limit, { type: "u32" }),
+      ),
+    )
+    .setTimeout(TimeoutInfinite)
+    .build();
+
+  const startedAt = performance.now();
+  const entries = await simulateTx<LeaderboardEntry[]>(tx, ctx.server);
+  recordLeaderboardQueryTime(performance.now() - startedAt);
+  return entries;
+};
+
+/**
+ * Batch-fetch leaderboard entries in a single RPC call with TTL caching.
+ * Pass `limit = 0` to request the full on-chain board (up to contract max).
+ */
+export const getLeaderboard = async (
+  ctx: LeaderboardFetchContext,
+  limit = 0,
+): Promise<LeaderboardEntry[]> => {
+  const cacheKey = buildContractCacheKey(
+    "get_leaderboard",
+    ctx.network,
+    ctx.contractId,
+    limit,
+  );
+
+  return contractQueryCache.getOrFetch(
+    cacheKey,
+    LEADERBOARD_CACHE_TTL_MS,
+    () => simulateLeaderboardBatch(ctx, limit),
+  );
+};
 
 export const RPC_URLS: { [key: string]: string } = {
   TESTNET: "https://soroban-testnet.stellar.org/",

@@ -533,3 +533,62 @@ pub fn emit_tip_sent_token(
         ),
     );
 }
+
+// ── Refund events ─────────────────────────────────────────────────────────────
+
+/// Topics : `("refund", "request")`
+/// Data   : `(tip_id: u32, tipper: Address, creator: Address, amount: i128, refund_amount: i128, non_refundable_fee: i128)`
+pub fn emit_refund_requested(
+    env: &Env,
+    tip_id: u32,
+    tipper: &Address,
+    creator: &Address,
+    amount: i128,
+    refund_amount: i128,
+    non_refundable_fee: i128,
+) {
+    env.events().publish(
+        (Symbol::new(env, "refund"), symbol_short!("request")),
+        (
+            tip_id,
+            tipper.clone(),
+            creator.clone(),
+            amount,
+            refund_amount,
+            non_refundable_fee,
+        ),
+    );
+}
+
+/// Topics : `("refund", "approved")`
+/// Data   : `(tip_id: u32, creator: Address, tipper: Address, refund_amount: i128)`
+pub fn emit_refund_approved(
+    env: &Env,
+    tip_id: u32,
+    creator: &Address,
+    tipper: &Address,
+    refund_amount: i128,
+) {
+    env.events().publish(
+        (Symbol::new(env, "refund"), symbol_short!("approved")),
+        (tip_id, creator.clone(), tipper.clone(), refund_amount),
+    );
+}
+
+/// Topics : `("refund", "rejected")`
+/// Data   : `(tip_id: u32, creator: Address, tipper: Address)`
+pub fn emit_refund_rejected(env: &Env, tip_id: u32, creator: &Address, tipper: &Address) {
+    env.events().publish(
+        (Symbol::new(env, "refund"), symbol_short!("rejected")),
+        (tip_id, creator.clone(), tipper.clone()),
+    );
+}
+
+/// Topics : `("refund", "auto")`
+/// Data   : `(tip_id: u32, tipper: Address, refund_amount: i128)`
+pub fn emit_refund_auto_approved(env: &Env, tip_id: u32, tipper: &Address, refund_amount: i128) {
+    env.events().publish(
+        (Symbol::new(env, "refund"), symbol_short!("auto")),
+        (tip_id, tipper.clone(), refund_amount),
+    );
+}

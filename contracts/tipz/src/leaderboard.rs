@@ -138,6 +138,40 @@ pub fn update_all_leaderboards_for_active(env: &Env, profile: &Profile, amount: 
     storage::set_leaderboard_set(env, &boards);
 }
 
+/// Update all leaderboards after a refund (subtract the refunded amount).
+///
+/// This recalculates the creator's position on all leaderboards after their
+/// total tips have been reduced by a refund.
+pub fn update_all_leaderboards_for_refund(env: &Env, profile: &Profile, refunded_amount: i128) {
+    if storage::is_profile_deactivated(env, &profile.owner) {
+        return;
+    }
+
+    let mut boards = storage::get_leaderboard_set(env).unwrap_or_else(|| storage::LeaderboardSet {
+        all_time: storage::get_leaderboard(env, LeaderboardPeriod::AllTime),
+        monthly: storage::get_leaderboard(env, LeaderboardPeriod::Monthly),
+        weekly: storage::get_leaderboard(env, LeaderboardPeriod::Weekly),
+        monthly_reset_at: storage::get_last_leaderboard_reset(env, LeaderboardPeriod::Monthly),
+        weekly_reset_at: storage::get_last_leaderboard_reset(env, LeaderboardPeriod::Weekly),
+    });
+
+    // Subtract from period volumes
+    let (monthly_total, weekly_total) = storage::add_creator_period_volumes(
+        env,
+        &profile.owner,
+        boards.monthly_reset_at,
+        boards.weekly_reset_at,
+        -refunded_amount, // Negative to subtract
+    );
+
+    // Update all leaderboards with new totals
+    update_entries(&mut boards.all_time, profile, profile.total_tips_received);
+    update_entries(&mut boards.monthly, profile, monthly_total);
+    update_entries(&mut boards.weekly, profile, weekly_total);
+
+    storage::set_leaderboard_set(env, &boards);
+}
+
 /// Remove `address` from every period leaderboard (e.g. on profile
 /// deactivation), so a delisted creator leaves no residual ranking.
 pub fn remove_from_all_leaderboards(env: &Env, address: &Address) {

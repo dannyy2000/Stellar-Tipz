@@ -30,13 +30,15 @@ interface WalletState {
   walletType: string | null;
   signingStatus: SigningStatus;
   _hasHydrated: boolean;
+  /** Unix timestamp (ms) when the current session expires. Null when disconnected. */
+  sessionExpiresAt: number | null;
 }
 
 interface WalletActions {
   /** Add (or activate) a wallet. If already in the list it becomes active. */
   connect: (publicKey: string, walletType?: string) => void;
   setAddress: (publicKey: string, walletType?: string) => void;
-  /** Disconnect all wallets and clear persisted state. */
+  /** Disconnect all wallets and clear all persisted session data. */
   disconnect: () => void;
   clearAddress: () => void;
   /** Remove a specific wallet from the list. */
@@ -49,9 +51,13 @@ interface WalletActions {
   setWalletError: (walletError: WalletError | null) => void;
   setNetwork: (network: Network) => void;
   setSigningStatus: (status: SigningStatus) => void;
+  /** Extend the session expiry timestamp (called on user activity). */
+  refreshSession: (timeoutMs?: number) => void;
 }
 
 type WalletStore = WalletState & WalletActions;
+
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 const initialWalletState: WalletState = {
   wallets: [],
@@ -61,10 +67,12 @@ const initialWalletState: WalletState = {
   connecting: false,
   isReconnecting: false,
   error: null,
+  walletError: null,
   network: "TESTNET",
   walletType: null,
   signingStatus: "idle",
   _hasHydrated: false,
+  sessionExpiresAt: null,
 };
 
 export const useWalletStore = create<WalletStore>()(
@@ -97,6 +105,11 @@ export const useWalletStore = create<WalletStore>()(
       setNetwork: (network: Network) => set({ network }),
 
       setSigningStatus: (signingStatus: SigningStatus) => set({ signingStatus }),
+
+      refreshSession: (timeoutMs = SESSION_TIMEOUT_MS) => {
+        if (!get().connected) return;
+        set({ sessionExpiresAt: Date.now() + timeoutMs });
+      },
     }),
     {
       name: "tipz-wallet",
@@ -119,6 +132,7 @@ export const useWalletStore = create<WalletStore>()(
         network: state.network,
         publicKey: state.publicKey,
         connected: state.connected,
+        sessionExpiresAt: state.sessionExpiresAt,
       }),
     },
   ),

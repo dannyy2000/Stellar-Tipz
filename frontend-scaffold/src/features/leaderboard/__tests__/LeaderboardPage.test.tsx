@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor, cleanup, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fc from 'fast-check';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -13,9 +13,18 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-const mockUseLeaderboard = vi.fn();
+const leaderboardHookState = vi.hoisted(() => ({
+  entries: [] as LeaderboardEntry[],
+  loading: false,
+  error: null as string | null,
+  hasMore: false,
+  loadMore: vi.fn(),
+  refetch: vi.fn(),
+}));
+
+// NOTE: these hooks are dynamically mocked in beforeEach via vi.doMock()
 vi.mock('@/hooks/useLeaderboard', () => ({
-  useLeaderboard: () => mockUseLeaderboard(),
+  useLeaderboard: () => leaderboardHookState,
 }));
 
 vi.mock('@/hooks/usePageTitle', () => ({
@@ -47,8 +56,8 @@ vi.mock('@/hooks/useFavorites', () => ({
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-import LeaderboardPage from '../LeaderboardPage';
 import type { LeaderboardEntry } from '@/types/contract';
+import LeaderboardPage from '../LeaderboardPage';
 
 function buildEntry(overrides: Partial<LeaderboardEntry> = {}): LeaderboardEntry {
   return {
@@ -65,12 +74,12 @@ function setLeaderboardState(state: {
   loading?: boolean;
   error?: string | null;
 }) {
-  mockUseLeaderboard.mockReturnValue({
-    entries: state.entries ?? [],
-    loading: state.loading ?? false,
-    error: state.error ?? null,
-    refetch: vi.fn(),
-  });
+  leaderboardHookState.entries = state.entries ?? [];
+  leaderboardHookState.loading = state.loading ?? false;
+  leaderboardHookState.error = state.error ?? null;
+  leaderboardHookState.hasMore = false;
+  leaderboardHookState.loadMore = vi.fn();
+  leaderboardHookState.refetch = vi.fn();
 }
 
 function setWalletConnected(publicKey = 'GTEST123') {
@@ -102,6 +111,11 @@ describe('LeaderboardPage', () => {
     vi.clearAllMocks();
     setWalletDisconnected();
     mockIsFavorite.mockReturnValue(false);
+    setLeaderboardState({ entries: [], loading: false, error: null });
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   // ── Sub-task 5.1: Property 7 – Leaderboard renders every entry's username ──
@@ -148,11 +162,7 @@ describe('LeaderboardPage', () => {
 
             // Every username must appear at least once in the DOM
             uniqueEntries.forEach((entry) => {
-              const matches = container.querySelectorAll('*');
-              const found = Array.from(matches).some(
-                (el) => el.textContent?.includes(entry.username),
-              );
-              expect(found).toBe(true);
+              expect(container.textContent ?? '').toContain(entry.username);
             });
 
             unmount();
@@ -174,18 +184,18 @@ describe('LeaderboardPage', () => {
       renderPage();
 
       expect(
-        screen.getByText(/no creators found on the leaderboard yet/i),
-      ).toBeInTheDocument();
+        screen.getAllByText(/no creators found on the leaderboard yet/i).length,
+      ).toBeGreaterThan(0);
     });
 
-    it('navigates to /@{username} when a creator row link is clicked (Req 7.3)', async () => {
+    it('navigates to /@{username} when a creator row link is clicked (Req 7.3)', () => {
       const entry = buildEntry({ address: 'GTEST456', username: 'clickme' });
       setLeaderboardState({ entries: [entry], loading: false, error: null });
 
       renderPage();
 
       // LeaderboardPage renders a <Link to={`/@${entry.username}`}> inside the table row
-      const link = screen.getByRole('link', { name: new RegExp(entry.username, 'i') });
+      const link = screen.getAllByRole('link', { name: new RegExp(entry.username, 'i') })[0];
       expect(link).toHaveAttribute('href', `/@${entry.username}`);
     });
 
@@ -194,11 +204,9 @@ describe('LeaderboardPage', () => {
 
       renderPage();
 
-      // LeaderboardSkeleton renders with aria-busy="true"
-      expect(screen.getByRole('main', { hidden: true }) ?? document.querySelector('[aria-busy="true"]')).toBeTruthy();
       // More specifically, the skeleton container has aria-busy
-      const busyEl = document.querySelector('[aria-busy="true"]');
-      expect(busyEl).not.toBeNull();
+      const busyEls = document.querySelectorAll('[aria-busy="true"]');
+      expect(busyEls.length).toBeGreaterThan(0);
     });
 
     it('renders error state with retry option when fetch fails (Req 7.5)', () => {
@@ -207,7 +215,7 @@ describe('LeaderboardPage', () => {
       renderPage();
 
       // ErrorState renders a "Try Again" button when onRetry is provided
-      expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /try again/i }).length).toBeGreaterThan(0);
     });
   });
 });

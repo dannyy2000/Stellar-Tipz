@@ -1,165 +1,192 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
-import { useContract } from "./useContract";
+import { useWallet } from "./";
 import { LeaderboardEntry } from "../types/contract";
 import { env } from "../helpers/env";
 import { mockLeaderboard } from "../features/mockData";
+import { NetworkDetails } from "../helpers/network";
+import { useWalletStore } from "../store/walletStore";
+import {
+  getServer,
+  getLeaderboard,
+  paginateLeaderboard,
+  mergeLeaderboardEntries,
+  invalidateLeaderboardCache,
+  LEADERBOARD_DEFAULT_PAGE_SIZE,
+  LEADERBOARD_CACHE_TTL_MS,
+  type LeaderboardFetchContext,
+} from "../services/soroban";
 
-const REFETCH_INTERVAL_MS = 60_000; // 60 seconds
-const CACHE_KEY = "leaderboard_cache";
-const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-
-interface CacheData {
-  entries: LeaderboardEntry[];
-  timestamp: number;
-}
+const READ_ONLY_SOURCE =
+  "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
 
 export interface LeaderboardData {
   entries: LeaderboardEntry[];
   loading: boolean;
   error: string | null;
+  hasMore: boolean;
+  loadMore: () => void;
   refetch: () => void;
 }
 
 /**
- * Fetches leaderboard data from the contract and keeps it fresh.
+ * Fetches leaderboard data with RPC batching, TTL cache, and client pagination.
  */
-export const useLeaderboard = (): LeaderboardData => {
-  const { getLeaderboard } = useContract();
+export const useLeaderboard = (
+  pageSize: number = LEADERBOARD_DEFAULT_PAGE_SIZE,
+): LeaderboardData => {
+  const wallet = useWallet();
+  const { network } = useWalletStore();
 
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
 
-  const hasDataRef = useRef(false);
+  const fullBatchRef = useRef<LeaderboardEntry[]>([]);
+  const nextOffsetRef = useRef(0);
   const isFetchingRef = useRef(false);
+  const hasDataRef = useRef(false);
 
-  /**
-   * Load cached data from sessionStorage if available and not expired.
-   */
-  const loadFromCache = useCallback((): LeaderboardEntry[] | null => {
-    try {
-      if (env.useMockData) return mockLeaderboard;
+  const networkDetails: NetworkDetails = useMemo(
+    () => ({
+      network,
+      networkUrl:
+        network === "TESTNET" ? env.horizonUrl : "https://horizon.stellar.org",
+      networkPassphrase:
+        network === "TESTNET"
+          ? "Test SDF Network ; September 2015"
+          : "Public Global Stellar Network ; September 2015",
+    }),
+    [network],
+  );
 
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (!cached) return null;
+  const buildFetchContext = useCallback((): LeaderboardFetchContext => {
+    const server = getServer(networkDetails);
+    return {
+      contractId: env.contractId,
+      network,
+      networkPassphrase: networkDetails.networkPassphrase,
+      sourcePublicKey: wallet.publicKey ?? READ_ONLY_SOURCE,
+      server,
+    };
+  }, [network, networkDetails.networkPassphrase, wallet.publicKey]);
 
-      const parsed = JSON.parse(cached);
+  const applyPage = useCallback(
+    (batch: LeaderboardEntry[], reset: boolean) => {
+      fullBatchRef.current = batch;
 
-      // Validate cache schema
-      if (
-        !parsed ||
-        !Array.isArray(parsed.entries) ||
-        typeof parsed.timestamp !== 'number'
-      ) {
-        sessionStorage.removeItem(CACHE_KEY);
-        return null;
+      if (reset) {
+        const page = paginateLeaderboard(batch, 0, pageSize);
+        setEntries(page.items);
+        nextOffsetRef.current = page.nextOffset ?? batch.length;
+        setHasMore(page.hasMore);
+        return;
       }
 
-      // Validate entries have required fields
-      if (!parsed.entries.every((entry: Record<string, unknown>) =>
-        entry &&
-        typeof entry.address === 'string' &&
-        typeof entry.username === 'string' &&
-        typeof entry.totalTipsReceived === 'string' &&
-        typeof entry.creditScore === 'number'
-      )) {
-        sessionStorage.removeItem(CACHE_KEY);
-        return null;
+      const visibleCount = Math.max(nextOffsetRef.current, pageSize);
+      setEntries(batch.slice(0, visibleCount));
+      setHasMore(visibleCount < batch.length);
+    },
+    [pageSize],
+  );
+
+  const fetchLeaderboard = useCallback(
+    async (options?: { background?: boolean; reset?: boolean }) => {
+      if (isFetchingRef.current) {
+        return;
       }
 
-      const isExpired = Date.now() - parsed.timestamp > CACHE_DURATION_MS;
-
-      if (isExpired) {
-        sessionStorage.removeItem(CACHE_KEY);
-        return null;
+      if (env.useMockData) {
+        applyPage(mockLeaderboard, true);
+        setLoading(false);
+        setError(null);
+        return;
       }
 
-      return parsed.entries;
-    } catch {
-      sessionStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-  }, []);
+      if (!env.contractId) {
+        setEntries([]);
+        setHasMore(false);
+        setLoading(false);
+        setError("Contract ID is not configured");
+        return;
+      }
 
-  /**
-   * Save data to sessionStorage with current timestamp.
-   */
-  const saveToCache = useCallback((data: LeaderboardEntry[]): void => {
-    try {
-      if (env.useMockData) return;
-      const cacheData: CacheData = {
-        entries: data,
-        timestamp: Date.now(),
-      };
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-    } catch {
-      // Silently fail
-    }
-  }, []);
+      isFetchingRef.current = true;
+      const shouldReset = options?.reset ?? !options?.background;
 
-  const fetchLeaderboard = useCallback(async () => {
-    if (isFetchingRef.current) return;
+      if (!options?.background && !hasDataRef.current) {
+        setLoading(true);
+      }
+      setError(null);
 
-    // Mock Fallback
+      try {
+        const batch = await getLeaderboard(buildFetchContext(), 0);
+        const merged = shouldReset
+          ? batch
+          : mergeLeaderboardEntries(fullBatchRef.current, batch);
+
+        applyPage(merged, shouldReset);
+        hasDataRef.current = true;
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch leaderboard data",
+        );
+      } finally {
+        setLoading(false);
+        isFetchingRef.current = false;
+      }
+    },
+    [applyPage, buildFetchContext],
+  );
+
+  useEffect(() => {
+    void fetchLeaderboard({ reset: true });
+  }, [fetchLeaderboard]);
+
+  useEffect(() => {
     if (env.useMockData) {
-      setEntries(mockLeaderboard);
-      setLoading(false);
-      hasDataRef.current = true;
       return;
     }
 
-    isFetchingRef.current = true;
-    if (!hasDataRef.current) {
-      setLoading(true);
-    }
-    setError(null);
+    const intervalId = setInterval(() => {
+      void fetchLeaderboard({ background: true, reset: false });
+    }, LEADERBOARD_CACHE_TTL_MS);
 
-    try {
-      const fetchedEntries = await getLeaderboard(50);
-
-      setEntries(fetchedEntries);
-      hasDataRef.current = true;
-      saveToCache(fetchedEntries);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch leaderboard data",
-      );
-    } finally {
-      setLoading(false);
-      isFetchingRef.current = false;
-    }
-  }, [getLeaderboard, saveToCache]);
-
-  useEffect(() => {
-    const cachedEntries = loadFromCache();
-
-    if (cachedEntries) {
-      setEntries(cachedEntries);
-      hasDataRef.current = true;
-      if (!env.useMockData) {
-        fetchLeaderboard();
-      }
-    } else {
-      fetchLeaderboard();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (env.useMockData) return;
-
-    const id = setInterval(() => {
-      fetchLeaderboard();
-    }, REFETCH_INTERVAL_MS);
-
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [fetchLeaderboard]);
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || loading) {
+      return;
+    }
+
+    const page = paginateLeaderboard(
+      fullBatchRef.current,
+      nextOffsetRef.current,
+      pageSize,
+    );
+
+    if (page.items.length === 0) {
+      setHasMore(false);
+      return;
+    }
+
+    setEntries((prev) => [...prev, ...page.items]);
+    nextOffsetRef.current = page.nextOffset ?? fullBatchRef.current.length;
+    setHasMore(page.hasMore);
+  }, [hasMore, loading, pageSize]);
 
   const refetch = useCallback(() => {
-    sessionStorage.removeItem(CACHE_KEY);
+    invalidateLeaderboardCache();
+    nextOffsetRef.current = 0;
     hasDataRef.current = false;
-    fetchLeaderboard();
+    void fetchLeaderboard({ reset: true });
   }, [fetchLeaderboard]);
 
-  return { entries, loading, error, refetch };
+  return { entries, loading, error, hasMore, loadMore, refetch };
 };

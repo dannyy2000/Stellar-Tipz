@@ -26,16 +26,16 @@ export function generateShareURL(
   switch (platform) {
     case 'twitter':
       return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-    
+
     case 'facebook':
       return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
-    
+
     case 'linkedin':
       return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${encodeURIComponent(text)}`;
-    
+
     case 'reddit':
       return `https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`;
-    
+
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
@@ -45,37 +45,6 @@ export function generateShareURL(
  * Generate share text based on type and data
  */
 export function generateShareText(type: ShareType, data: ShareData): string {
-  switch (type) {
-    case 'tip':
-      if (data.amount && data.to) {
-        return `Just sent ${data.amount} XLM to @${data.to} on Stellar Tipz! 💫 Supporting creators on the blockchain. #StellarTipz #Crypto`;
-      }
-      if (data.amount && data.from) {
-        return `Received ${data.amount} XLM from a supporter on Stellar Tipz! 💫 Thank you for the support! #StellarTipz #Crypto`;
-      }
-      return 'Check out Stellar Tipz - the decentralized tipping platform! 💫 #StellarTipz';
-
-    case 'achievement':
-      if (data.achievement && data.username) {
-        return `🏆 Just unlocked "${data.achievement}" on Stellar Tipz! Building my creator reputation on the blockchain. #StellarTipz #Achievement`;
-      }
-      return '🏆 Just unlocked a new achievement on Stellar Tipz! #StellarTipz #Achievement';
-
-    case 'profile':
-      if (data.username) {
-        return `Check out my creator profile on Stellar Tipz! Support me with instant XLM tips. #StellarTipz #Creator`;
-      }
-      return 'Join me on Stellar Tipz - the future of creator support! #StellarTipz';
-
-    default:
-      return 'Check out Stellar Tipz - decentralized tipping on Stellar! 💫 #StellarTipz';
-  }
-}
-
-/**
- * Generate share text based on type and data
- */
-function generateShareText(type: ShareType, data: ShareData): string {
   switch (type) {
     case 'tip':
       if (data.amount && data.to) {
@@ -127,29 +96,6 @@ export function generateShareLink(type: ShareType, data: ShareData): string {
 }
 
 /**
- * Generate share link based on type and data
- */
-function generateShareLink(type: ShareType, data: ShareData): string {
-  switch (type) {
-    case 'tip':
-    case 'profile':
-      if (data.username) {
-        return `${BASE_URL}/@${data.username}`;
-      }
-      return BASE_URL;
-
-    case 'achievement':
-      if (data.username) {
-        return `${BASE_URL}/@${data.username}`;
-      }
-      return BASE_URL;
-
-    default:
-      return BASE_URL;
-  }
-}
-
-/**
  * Copy text to clipboard
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -167,7 +113,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      
+
       const success = document.execCommand('copy');
       document.body.removeChild(textArea);
       return success;
@@ -192,13 +138,13 @@ export async function nativeShare(
   try {
     const text = generateShareText(type, data);
     const url = generateShareLink(type, data);
-    
+
     await navigator.share({
       title: 'Stellar Tipz',
       text,
       url,
     });
-    
+
     return true;
   } catch (err) {
     // User cancelled or error occurred
@@ -212,13 +158,13 @@ export async function nativeShare(
  */
 export function generateOGImageURL(type: ShareType, data: ShareData): string {
   const params = new URLSearchParams();
-  
+
   params.set('type', type);
-  
+
   if (data.username) params.set('username', data.username);
   if (data.amount) params.set('amount', data.amount.toString());
   if (data.achievement) params.set('achievement', data.achievement);
-  
+
   return `${BASE_URL}/api/og?${params.toString()}`;
 }
 
@@ -236,11 +182,11 @@ export function getRecommendedPlatforms(): SharePlatform[] {
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
-  
+
   if (isMobile) {
     return ['twitter', 'facebook'];
   }
-  
+
   return ['twitter', 'facebook', 'linkedin', 'reddit'];
 }
 

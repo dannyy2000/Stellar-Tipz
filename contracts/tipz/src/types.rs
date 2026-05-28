@@ -407,3 +407,53 @@ pub struct ScheduledTip {
     /// Timestamp when the scheduled tip was created
     pub created_at: u64,
 }
+
+/// Refund request status
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub enum RefundStatus {
+    /// Refund has been requested and is pending creator response
+    Pending,
+    /// Creator approved the refund
+    Approved,
+    /// Creator rejected the refund
+    Rejected,
+    /// Refund was auto-approved after timeout
+    AutoApproved,
+}
+
+/// Refund request for a tip
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RefundRequest {
+    /// Tip ID being refunded
+    pub tip_id: u32,
+    /// Address of the tipper requesting refund
+    pub tipper: Address,
+    /// Address of the creator who received the tip
+    pub creator: Address,
+    /// Original tip amount
+    pub amount: i128,
+    /// Timestamp when refund was requested
+    pub requested_at: u64,
+    /// Current status of the refund
+    pub status: RefundStatus,
+    /// Timestamp when refund was processed (approved/rejected/auto-approved)
+    pub processed_at: Option<u64>,
+    /// Net refund amount (amount minus non-refundable fee)
+    pub refund_amount: i128,
+    /// Non-refundable platform fee
+    pub non_refundable_fee: i128,
+}
+
+/// Refund configuration
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RefundConfig {
+    /// Time window in seconds for requesting refunds (default 24 hours = 86400)
+    pub request_window_secs: u64,
+    /// Time window in seconds for creator to respond before auto-approval (default 48 hours = 172800)
+    pub response_window_secs: u64,
+    /// Non-refundable fee percentage in basis points (default 200 = 2%)
+    pub non_refundable_fee_bps: u32,
+}

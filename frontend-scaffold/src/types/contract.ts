@@ -122,3 +122,23 @@ export const getCreditTier = (score: number): CreditTier => {
   if (score >= 20) return 'bronze';
   return 'new';
 };
+
+/** Recurring tip subscription from the contract */
+export interface Subscription {
+  subscriber: string;
+  creator: string;
+  amount: string;
+  intervalDays: number;
+  nextDue: number;
+  active: boolean;
+}
+
+/** Raw subscription record as returned by the contract before key mapping. */
+export interface RawSubscription {
+  subscriber: string;
+  creator: string;
+  amount: string;
+  interval_days: number;
+  next_due: number;
+  active: boolean;
+}

@@ -159,6 +159,10 @@ pub enum ExtendedDataKey {
     AcceptedTokenList,
     /// Token balance for a creator by (creator, token)
     TokenBalance(Address, Address),
+    /// Refund request by tip ID
+    RefundRequest(u32),
+    /// Refund configuration
+    RefundConfig,
 }
 
 /// Storage keys for compact performance caches.
@@ -1226,6 +1230,59 @@ pub fn add_to_fees(env: &Env, fee: i128) -> Result<(), ContractError> {
         .instance()
         .set(&DataKey::TotalFeesCollected, &next);
     Ok(())
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Refund storage functions
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Default refund configuration
+pub const DEFAULT_REFUND_REQUEST_WINDOW_SECS: u64 = 86400; // 24 hours
+pub const DEFAULT_REFUND_RESPONSE_WINDOW_SECS: u64 = 172800; // 48 hours
+pub const DEFAULT_NON_REFUNDABLE_FEE_BPS: u32 = 200; // 2%
+
+/// Get refund configuration
+pub fn get_refund_config(env: &Env) -> crate::types::RefundConfig {
+    env.storage()
+        .instance()
+        .get(&ExtendedDataKey::RefundConfig)
+        .unwrap_or(crate::types::RefundConfig {
+            request_window_secs: DEFAULT_REFUND_REQUEST_WINDOW_SECS,
+            response_window_secs: DEFAULT_REFUND_RESPONSE_WINDOW_SECS,
+            non_refundable_fee_bps: DEFAULT_NON_REFUNDABLE_FEE_BPS,
+        })
+}
+
+/// Set refund configuration (admin only)
+pub fn set_refund_config(env: &Env, config: &crate::types::RefundConfig) {
+    env.storage()
+        .instance()
+        .set(&ExtendedDataKey::RefundConfig, config);
+}
+
+/// Get refund request by tip ID
+pub fn get_refund_request(env: &Env, tip_id: u32) -> Option<crate::types::RefundRequest> {
+    env.storage()
+        .temporary()
+        .get(&ExtendedDataKey::RefundRequest(tip_id))
+}
+
+/// Set refund request
+pub fn set_refund_request(env: &Env, request: &crate::types::RefundRequest) {
+    let key = ExtendedDataKey::RefundRequest(request.tip_id);
+    env.storage().temporary().set(&key, request);
+    // Use same TTL as tips - we need to use a DataKey for TTL extension
+    // Store in temporary with manual TTL
+    env.storage()
+        .temporary()
+        .extend_ttl(&key, TIP_TTL_LEDGERS, TIP_TTL_LEDGERS);
+}
+
+/// Remove refund request
+pub fn remove_refund_request(env: &Env, tip_id: u32) {
+    env.storage()
+        .temporary()
+        .remove(&ExtendedDataKey::RefundRequest(tip_id));
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

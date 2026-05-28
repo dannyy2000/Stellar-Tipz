@@ -1,4 +1,5 @@
-
+import React, { useMemo, useEffect, useRef } from "react";
+import { Crown, Medal, Trophy, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import PageContainer from "../../components/layout/PageContainer";
@@ -10,12 +11,9 @@ import Card from "../../components/ui/Card";
 import ErrorState from "../../components/shared/ErrorState";
 import PullToRefresh from "../../components/shared/PullToRefresh";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useContract } from "@/hooks/useContract";
-import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { categorizeError } from "@/helpers/error";
-import { LeaderboardEntry } from "@/types/contract";
 import LeaderboardSkeleton from "./LeaderboardSkeleton";
-import LeaderboardFilters from "./LeaderboardFilters";
 
 
 const PAGE_SIZE = 20;
@@ -23,33 +21,31 @@ const PAGE_SIZE = 20;
 const LeaderboardPage: React.FC = () => {
   usePageTitle('Leaderboard');
 
-  const { getLeaderboard } = useContract();
-  const [currentPage, setCurrentPage] = useState(1);
+  const { entries, loading, hasMore, error, loadMore } = useLeaderboard(PAGE_SIZE);
+  const observerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch function for infinite scroll
-  const fetchLeaderboardData = async (cursor?: string) => {
-    const offset = cursor ? parseInt(cursor) : 0;
-    const entries = await getLeaderboard(PAGE_SIZE + offset);
-    
-    // Simulate pagination by slicing the results
-    const startIndex = offset;
-    const endIndex = offset + PAGE_SIZE;
-    const pageEntries = entries.slice(startIndex, endIndex);
-    
-    return {
-      items: pageEntries,
-      hasMore: endIndex < entries.length,
-      nextCursor: endIndex < entries.length ? endIndex.toString() : undefined,
-    };
-  };
+  useEffect(() => {
+    const target = observerRef.current;
+    if (!target || !hasMore) {
+      return;
+    }
 
-  const {
-    items: entries,
-    loading,
-    hasMore,
-    error,
-    observerRef,
-  } = useInfiniteScroll<LeaderboardEntry>(fetchLeaderboardData);
+    if (typeof window === "undefined" || typeof window.IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (observerEntries) => {
+        if (observerEntries[0]?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   // Top 3 entries for podium display
   const topThree = useMemo(() => entries.slice(0, 3), [entries]);
@@ -101,13 +97,13 @@ const LeaderboardPage: React.FC = () => {
                     </span>
                     <CreditBadge score={entry.creditScore} showScore={false} />
                   </div>
-                  <div className="flex items-center gap-3">
+                  <Link to={`/@${entry.username}`} className="flex items-center gap-3">
                     <Avatar address={entry.address} alt={entry.username} fallback={entry.username} size="lg" />
                     <div>
                       <p className="text-lg font-black uppercase truncate max-w-[120px]">{entry.username}</p>
                       <AmountDisplay amount={entry.totalTipsReceived} className="text-sm" />
                     </div>
-                  </div>
+                  </Link>
                 </Card>
               );
             })
