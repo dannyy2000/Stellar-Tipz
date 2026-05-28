@@ -1,5 +1,7 @@
 export { default as AmountDisplay } from "./AmountDisplay";
 export { default as CreditBadge } from "./CreditBadge";
+export { default as DataTable } from "./DataTable";
+export type { DataTableColumn, DataTableProps } from "./DataTable";
 export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as ShareLink } from "./ShareLink";
 export { default as TipCard } from "./TipCard";
