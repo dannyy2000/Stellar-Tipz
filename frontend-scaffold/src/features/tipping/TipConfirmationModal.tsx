@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HeartHandshake, Info } from 'lucide-react';
+import { HeartHandshake, Info, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Avatar from '../../components/ui/Avatar';
@@ -17,6 +17,7 @@ interface TipConfirmationModalProps {
   creator: Profile;
   amount: string;
   message: string;
+  isEncrypted?: boolean;
   submitting?: boolean;
 }
 
@@ -27,6 +28,7 @@ export const TipConfirmationModal: React.FC<TipConfirmationModalProps> = ({
   creator,
   amount,
   message,
+  isEncrypted = false,
   submitting = false,
 }) => {
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -91,7 +93,10 @@ export const TipConfirmationModal: React.FC<TipConfirmationModalProps> = ({
 
         {message && (
           <div className="card-brutalist bg-yellow-50 dark:bg-yellow-900/20 p-3">
-            <p className="text-xs font-black uppercase mb-1 text-gray-800 dark:text-gray-200">Message</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs font-black uppercase text-gray-800 dark:text-gray-200">Message</p>
+              {isEncrypted && <Lock size={12} className="text-green-700" />}
+            </div>
             <p className="italic text-sm">"{message}"</p>
           </div>
         )}

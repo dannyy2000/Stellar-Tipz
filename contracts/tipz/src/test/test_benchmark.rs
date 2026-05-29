@@ -142,6 +142,7 @@ fn benchmark_send_tip_gas() {
             &10_000_000_i128,
             &String::from_str(&s.env, "tip"),
             &false,
+            &false,
         );
     });
 

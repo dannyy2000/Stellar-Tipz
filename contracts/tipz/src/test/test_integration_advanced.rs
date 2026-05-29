@@ -94,7 +94,7 @@ fn test_multi_user_tipping_round_robin() {
     for i in 0..5 {
         let tipper = users.get(i).unwrap();
         let receiver = users.get((i + 1) % 5).unwrap();
-        client.send_tip(&tipper, &receiver, &tip_amount, &message, &false);
+        client.send_tip(&tipper, &receiver, &tip_amount, &message, &false, &false);
     }
 
     // 3. Verify balances: Each user should have exactly 50 XLM in contract balance
@@ -128,6 +128,7 @@ fn test_withdrawal_drains_entire_balance() {
         &tip_amount,
         &String::from_str(&env, "Tip"),
         &false,
+        &false,
     );
 
     let profile_before = client.get_profile(&creator);
@@ -158,7 +159,7 @@ fn test_rapid_tips_same_creator() {
 
     for _ in 0..100 {
         env.budget().reset_default();
-        client.send_tip(&tipper, &creator, &tip_amount, &message, &false);
+        client.send_tip(&tipper, &creator, &tip_amount, &message, &false, &false);
     }
 
     let profile = client.get_profile(&creator);
@@ -178,9 +179,9 @@ fn test_leaderboard_overtake() {
     let message = String::from_str(&env, "Tip!");
 
     // Alice gets 100 XLM
-    client.send_tip(&tipper, &alice, &1_000_000_000, &message, &false);
+    client.send_tip(&tipper, &alice, &1_000_000_000, &message, &false, &false);
     // Bob gets 50 XLM
-    client.send_tip(&tipper, &bob, &500_000_000, &message, &false);
+    client.send_tip(&tipper, &bob, &500_000_000, &message, &false, &false);
 
     // Verify Alice is #1
     let leaderboard = client.get_leaderboard(&2);
@@ -188,7 +189,7 @@ fn test_leaderboard_overtake() {
     assert_eq!(leaderboard.get(1).unwrap().address, bob);
 
     // Bob gets 100 XLM more (total 150 XLM)
-    client.send_tip(&tipper, &bob, &1_000_000_000, &message, &false);
+    client.send_tip(&tipper, &bob, &1_000_000_000, &message, &false, &false);
 
     // Verify Bob is #1
     let leaderboard_after = client.get_leaderboard(&2);
@@ -216,12 +217,14 @@ fn test_full_lifecycle() {
         &1_000_000_000,
         &String::from_str(&env, "A"),
         &false,
+        &false,
     );
     client.send_tip(
         &tipper,
         &bob,
         &2_000_000_000,
         &String::from_str(&env, "B"),
+        &false,
         &false,
     );
 
@@ -282,6 +285,7 @@ fn test_fee_change_mid_tip() {
         &creator,
         &tip_amount,
         &String::from_str(&env, "Tip"),
+        &false,
         &false,
     );
 

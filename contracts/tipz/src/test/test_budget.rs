@@ -252,7 +252,7 @@ fn test_send_tip_budget_short_message() {
 
     env.budget().reset_unlimited();
 
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
 
     let cpu = env.budget().cpu_instruction_cost();
     let mem = env.budget().memory_bytes_cost();
@@ -292,7 +292,7 @@ fn test_send_tip_budget_max_message() {
 
     env.budget().reset_unlimited();
 
-    client.send_tip(&tipper, &creator, &amount, &max_msg, &false);
+    client.send_tip(&tipper, &creator, &amount, &max_msg, &false, &false);
 
     let cpu = env.budget().cpu_instruction_cost();
     let mem = env.budget().memory_bytes_cost();
@@ -345,7 +345,7 @@ fn test_send_tip_budget_full_leaderboard_rebalance() {
 
     env.budget().reset_unlimited();
 
-    client.send_tip(&tipper, &top_creator, &amount, &message, &false);
+    client.send_tip(&tipper, &top_creator, &amount, &message, &false, &false);
 
     let cpu = env.budget().cpu_instruction_cost();
     let mem = env.budget().memory_bytes_cost();
@@ -382,6 +382,7 @@ fn test_withdraw_tips_budget() {
         &creator,
         &tip_amount,
         &String::from_str(&env, ""),
+        &false,
         &false,
     );
 
@@ -473,6 +474,7 @@ fn test_send_tip_message_length_overhead() {
         &amount,
         &String::from_str(&env_empty, ""),
         &false,
+        &false,
     );
     let cpu_empty = env_empty.budget().cpu_instruction_cost();
 
@@ -485,7 +487,7 @@ fn test_send_tip_message_length_overhead() {
          AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     );
     env_full.budget().reset_unlimited();
-    client_full.send_tip(&tipper_full, &creator_full, &amount, &max_msg, &false);
+    client_full.send_tip(&tipper_full, &creator_full, &amount, &max_msg, &false, &false);
     let cpu_full = env_full.budget().cpu_instruction_cost();
 
     let overhead = cpu_full.saturating_sub(cpu_empty);

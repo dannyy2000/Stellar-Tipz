@@ -225,8 +225,9 @@ impl TipzContract {
         amount: i128,
         message: String,
         is_anonymous: bool,
+        is_encrypted: bool,
     ) -> Result<(), ContractError> {
-        tips::send_tip(&env, &tipper, &creator, amount, &message, is_anonymous)
+        tips::send_tip(&env, &tipper, &creator, amount, &message, is_anonymous, is_encrypted)
     }
 
     /// Send a tip on behalf of someone else.

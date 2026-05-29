@@ -3,6 +3,8 @@ import {
   ArrowRight,
   Globe2,
   HeartHandshake,
+  Lock,
+  LockOpen,
   MessageSquare,
   Wallet,
 } from "lucide-react";
@@ -30,6 +32,8 @@ import TipPageSkeleton from "./TipPageSkeleton";
 import TipAmountInput from "./TipAmountInput";
 import TipResult from "./TipResult";
 import RecentTips from "./RecentTips";
+import GoalProgress from "@/features/profile/GoalProgress";
+import { useGoalStore } from "@/store/goalStore";
 import { TipConfirmationModal } from "./TipConfirmationModal";
 import { useTipFlow } from "./useTipFlow";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -46,11 +50,14 @@ const TipPage: React.FC = () => {
   const { connected, connect, publicKey: connectedWallet } = useWallet();
   const [amount, setAmount] = useState("5");
   const [message, setMessage] = useState("");
+  const [isEncrypted, setIsEncrypted] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
   const { getProfileByUsername } = useContract();
   const [loading, setLoading] = useState(true);
   const [creator, setCreator] = useState<Profile | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const goals = useGoalStore((s) => s.goals);
+  const creatorGoal = creator ? goals.find((g) => g.creator === creator.owner && g.active) : undefined;
 
   const fetchCreator = useCallback(async () => {
     if (!username) return;
@@ -146,7 +153,7 @@ const TipPage: React.FC = () => {
       return;
     }
 
-    goToConfirm(amount, message);
+    goToConfirm(amount, message, isEncrypted);
   };
 
   // Wrapped confirm handler with transaction guard
@@ -274,6 +281,8 @@ const TipPage: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {creatorGoal && <GoalProgress goal={creatorGoal} creatorAddress={creator.owner} showShare />}
         </Card>
 
         <Card className="space-y-5" padding="lg">
@@ -360,6 +369,23 @@ const TipPage: React.FC = () => {
                 onChange={(event) => setMessage(event.target.value)}
               />
 
+              <button
+                type="button"
+                onClick={() => setIsEncrypted(!isEncrypted)}
+                className={`flex items-center gap-2 border-2 px-3 py-2 text-xs font-black uppercase transition-colors ${
+                  isEncrypted
+                    ? "border-black bg-green-100 text-green-800"
+                    : "border-gray-300 bg-white text-gray-500 hover:border-gray-400"
+                }`}
+              >
+                {isEncrypted ? (
+                  <Lock size={14} />
+                ) : (
+                  <LockOpen size={14} />
+                )}
+                {isEncrypted ? "Encrypted message" : "Encrypt message"}
+              </button>
+
               <div className="flex flex-col gap-3 sm:flex-row">
                 {connected ? (
                   <Button
@@ -396,6 +422,7 @@ const TipPage: React.FC = () => {
             creator={creator}
             amount={amount}
             message={message}
+            isEncrypted={isEncrypted}
             submitting={
               step === "signing" ||
               step === "submitting" ||

@@ -41,6 +41,7 @@ fn test_anonymous_tip() {
         &1_000_000,
         &String::from_str(&env, "Great work!"),
         &true,
+        &false,
     );
 
     // Get tip history for creator
@@ -72,6 +73,7 @@ fn test_tipper_sees_own_anonymous_tip() {
         &1_000_000,
         &String::from_str(&env, "Great work!"),
         &true,
+        &false,
     );
 
     // Tipper can see their own tips
@@ -102,6 +104,7 @@ fn test_non_anonymous_tip() {
         &creator,
         &1_000_000,
         &String::from_str(&env, "Great work!"),
+        &false,
         &false,
     );
 
@@ -137,6 +140,7 @@ fn test_mixed_anonymous_and_public_tips() {
         &1_000_000,
         &String::from_str(&env, "Anonymous support"),
         &true,
+        &false,
     );
 
     // Send public tip
@@ -145,6 +149,7 @@ fn test_mixed_anonymous_and_public_tips() {
         &creator,
         &2_000_000,
         &String::from_str(&env, "Public support"),
+        &false,
         &false,
     );
 

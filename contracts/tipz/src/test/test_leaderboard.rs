@@ -142,6 +142,7 @@ fn test_leaderboard_single_creator() {
         &amount,
         &String::from_str(&env, ""),
         &false,
+        &false,
     );
 
     let board = client.get_leaderboard(&50);
@@ -172,9 +173,9 @@ fn test_leaderboard_ordering() {
 
     let msg = String::from_str(&env, "");
     // alice: 3 XLM, carol: 5 XLM, bob: 1 XLM  →  expected order: carol, alice, bob
-    client.send_tip(&tipper, &alice, &30_000_000, &msg, &false);
-    client.send_tip(&tipper, &carol, &50_000_000, &msg, &false);
-    client.send_tip(&tipper, &bob, &10_000_000, &msg, &false);
+    client.send_tip(&tipper, &alice, &30_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &carol, &50_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &bob, &10_000_000, &msg, &false, &false);
 
     let board = client.get_leaderboard(&50);
     assert_eq!(board.len(), 3);
@@ -303,8 +304,8 @@ fn test_leaderboard_rank_update() {
     let msg = String::from_str(&env, "");
 
     // Bob starts in the lead.
-    client.send_tip(&tipper, &bob, &50_000_000, &msg, &false);
-    client.send_tip(&tipper, &alice, &10_000_000, &msg, &false);
+    client.send_tip(&tipper, &bob, &50_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &alice, &10_000_000, &msg, &false, &false);
 
     let board_before = client.get_leaderboard(&50);
     assert_eq!(
@@ -314,7 +315,7 @@ fn test_leaderboard_rank_update() {
     );
 
     // Alice receives a larger tip and overtakes bob.
-    client.send_tip(&tipper, &alice, &100_000_000, &msg, &false);
+    client.send_tip(&tipper, &alice, &100_000_000, &msg, &false, &false);
 
     let board_after = client.get_leaderboard(&50);
     assert_eq!(
@@ -344,9 +345,9 @@ fn test_leaderboard_rank_lookup() {
 
     let msg = String::from_str(&env, "");
     // carol: 5 XLM → rank 1, alice: 3 XLM → rank 2, bob: 1 XLM → rank 3
-    client.send_tip(&tipper, &carol, &50_000_000, &msg, &false);
-    client.send_tip(&tipper, &alice, &30_000_000, &msg, &false);
-    client.send_tip(&tipper, &bob, &10_000_000, &msg, &false);
+    client.send_tip(&tipper, &carol, &50_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &alice, &30_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &bob, &10_000_000, &msg, &false, &false);
 
     assert_eq!(
         client.get_leaderboard_rank(&crate::types::LeaderboardPeriod::AllTime, &carol),
@@ -385,13 +386,13 @@ fn test_insert_at_position_zero() {
     insert_profile(&env, &contract_id, &bob, "bob");
 
     let msg = String::from_str(&env, "");
-    client.send_tip(&tipper, &alice, &20_000_000, &msg, &false); // 2 XLM
-    client.send_tip(&tipper, &bob, &10_000_000, &msg, &false); // 1 XLM
+    client.send_tip(&tipper, &alice, &20_000_000, &msg, &false, &false); // 2 XLM
+    client.send_tip(&tipper, &bob, &10_000_000, &msg, &false, &false); // 1 XLM
 
     // carol arrives with the highest tip — must claim rank 1 (index 0).
     let carol = Address::generate(&env);
     insert_profile(&env, &contract_id, &carol, "carol");
-    client.send_tip(&tipper, &carol, &50_000_000, &msg, &false); // 5 XLM
+    client.send_tip(&tipper, &carol, &50_000_000, &msg, &false, &false); // 5 XLM
 
     let board = client.get_leaderboard(&crate::types::LeaderboardPeriod::AllTime, &50);
     assert_eq!(board.len(), 3);
@@ -425,6 +426,7 @@ fn test_insert_when_board_has_one_entry() {
         &30_000_000,
         &String::from_str(&env, ""),
         &false,
+        &false,
     ); // 3 XLM
 
     let board_one = client.get_leaderboard(&crate::types::LeaderboardPeriod::AllTime, &50);
@@ -439,6 +441,7 @@ fn test_insert_when_board_has_one_entry() {
         &bob,
         &10_000_000,
         &String::from_str(&env, ""),
+        &false,
         &false,
     ); // 1 XLM
 
@@ -467,9 +470,9 @@ fn test_no_duplicates_after_update() {
     insert_profile(&env, &contract_id, &alice, "alice");
 
     let msg = String::from_str(&env, "");
-    client.send_tip(&tipper, &alice, &10_000_000, &msg, &false); // tip 1 — 1 XLM
-    client.send_tip(&tipper, &alice, &20_000_000, &msg, &false); // tip 2 — 2 XLM
-    client.send_tip(&tipper, &alice, &30_000_000, &msg, &false); // tip 3 — 3 XLM
+    client.send_tip(&tipper, &alice, &10_000_000, &msg, &false, &false); // tip 1 — 1 XLM
+    client.send_tip(&tipper, &alice, &20_000_000, &msg, &false, &false); // tip 2 — 2 XLM
+    client.send_tip(&tipper, &alice, &30_000_000, &msg, &false, &false); // tip 3 — 3 XLM
 
     let board = client.get_leaderboard(&50);
     assert_eq!(

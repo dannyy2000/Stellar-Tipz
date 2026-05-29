@@ -328,6 +328,7 @@ fn snapshot_storage_after_tip() {
         &10_000_000_i128,
         &SorobanString::from_str(&env, "Great work!"),
         &false,
+        &false,
     );
 
     let snap = snapshot_storage(&env, &client.address, &ctx);

@@ -65,7 +65,9 @@ const TipsTab: React.FC = () => {
     date: formatTimestamp(tip.timestamp),
     tipper: truncateAddress(tip.tipper),
     amount: `${stroopToXlm(tip.amount, 7)} XLM`,
-    message: tip.message || "—",
+    message: tip.isEncrypted && tip.message
+      ? <span><span className="text-amber-600 mr-1">🔒</span>Encrypted</span>
+      : (tip.message || "—"),
   }));
 
   const columns = [

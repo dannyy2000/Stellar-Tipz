@@ -60,7 +60,7 @@ pub fn emit_profile_reactivated(env: &Env, creator: &Address, actor: &Address) {
 // ── Tip events ────────────────────────────────────────────────────────────────
 
 /// Topics : `("tip", "sent")`
-/// Data   : `(id: u32, tipper: Address, creator: Address, amount: i128, message: String, timestamp: u64, is_anonymous: bool)`
+/// Data   : `(id: u32, tipper: Address, creator: Address, amount: i128, message: String, timestamp: u64, is_anonymous: bool, is_encrypted: bool)`
 ///
 /// All tip fields are included so that off-chain indexers can reconstruct the
 /// complete tip history from events alone, without relying on temporary storage
@@ -75,6 +75,7 @@ pub fn emit_tip_sent(
     message: &String,
     timestamp: u64,
     is_anonymous: bool,
+    is_encrypted: bool,
 ) {
     env.events().publish(
         (symbol_short!("tip"), symbol_short!("sent")),
@@ -86,6 +87,7 @@ pub fn emit_tip_sent(
             message.clone(),
             timestamp,
             is_anonymous,
+            is_encrypted,
         ),
     );
 }

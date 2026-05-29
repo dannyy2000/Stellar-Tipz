@@ -155,6 +155,7 @@ fn test_message_length_bounded() {
         &1_000_000_i128,
         &valid_msg,
         &false,
+        &false,
     );
     assert!(result.is_ok());
 
@@ -165,6 +166,7 @@ fn test_message_length_bounded() {
         &bob,
         &1_000_000_i128,
         &long_msg,
+        &false,
         &false,
     );
     assert_eq!(result2, Err(Ok(ContractError::MessageTooLong)));
@@ -361,6 +363,7 @@ fn test_leaderboard_size_bounded() {
         &100_000_000_i128,
         &String::from_str(&env, "big tip"),
         &false,
+        &false,
     );
 
     // After update, the leaderboard should be capped at MAX_LEADERBOARD_SIZE
@@ -427,6 +430,7 @@ fn test_cleanup_inactive_profile_with_balance_rejected() {
         &creator,
         &1_000_000_i128,
         &String::from_str(&env, "tip"),
+        &false,
         &false,
     );
 

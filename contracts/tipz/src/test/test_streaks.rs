@@ -90,7 +90,7 @@ fn send_daily_tip(
     env.ledger().set_timestamp(timestamp);
     let message = String::from_str(env, "keep it up");
     let amount: i128 = 50_000_000;
-    client.send_tip(tipper, creator, &amount, &message, &false);
+    client.send_tip(tipper, creator, &amount, &message, &false, &false);
 }
 
 #[test]

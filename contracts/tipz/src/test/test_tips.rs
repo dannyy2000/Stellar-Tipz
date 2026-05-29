@@ -100,7 +100,7 @@ fn test_send_tip_success() {
     let message = String::from_str(&env, "Great work!");
     let amount: i128 = 10_000_000; // 1 XLM
 
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
 
     // Verify XLM was transferred from tipper to the contract
     assert_eq!(token_client.balance(&tipper), tipper_before - amount);
@@ -151,7 +151,7 @@ fn test_send_tip_updates_credit_score() {
     let amount: i128 = 500_000_000;
     let message = String::from_str(&env, "great content");
 
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
 
     // calculate_credit_score recalculates and persists the score
     let score = client.calculate_credit_score(&creator);
@@ -206,7 +206,7 @@ fn test_send_tip_self() {
     });
 
     let message = String::from_str(&env, "Self tip");
-    let result = client.try_send_tip(&self_tipper, &self_tipper, &10_000_000, &message, &false);
+    let result = client.try_send_tip(&self_tipper, &self_tipper, &10_000_000, &message, &false, &false);
     assert_eq!(result, Err(Ok(ContractError::CannotTipSelf)));
 }
 
@@ -217,7 +217,7 @@ fn test_send_tip_unregistered_creator() {
     let unregistered = Address::generate(&env);
     let message = String::from_str(&env, "Hello");
 
-    let result = client.try_send_tip(&tipper, &unregistered, &10_000_000, &message, &false);
+    let result = client.try_send_tip(&tipper, &unregistered, &10_000_000, &message, &false, &false);
     assert_eq!(result, Err(Ok(ContractError::NotRegistered)));
 }
 
@@ -226,7 +226,7 @@ fn test_send_tip_zero_amount() {
     let (env, client, _contract_id, tipper, creator, _sac) = setup_env();
 
     let message = String::from_str(&env, "Zero tip");
-    let result = client.try_send_tip(&tipper, &creator, &0, &message, &false);
+    let result = client.try_send_tip(&tipper, &creator, &0, &message, &false, &false);
     assert_eq!(result, Err(Ok(ContractError::InvalidAmount)));
 }
 
@@ -235,7 +235,7 @@ fn test_send_tip_invalid_amount_negative() {
     let (env, client, _contract_id, tipper, creator, _sac) = setup_env();
 
     let message = String::from_str(&env, "Negative tip");
-    let result = client.try_send_tip(&tipper, &creator, &-1, &message, &false);
+    let result = client.try_send_tip(&tipper, &creator, &-1, &message, &false, &false);
     assert_eq!(result, Err(Ok(ContractError::InvalidAmount)));
 }
 
@@ -248,7 +248,7 @@ fn test_send_tip_message_too_long() {
         &env,
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     );
-    let result = client.try_send_tip(&tipper, &creator, &10_000_000, &long_msg, &false);
+    let result = client.try_send_tip(&tipper, &creator, &10_000_000, &long_msg, &false, &false);
     assert_eq!(result, Err(Ok(ContractError::MessageTooLong)));
 }
 
@@ -258,7 +258,7 @@ fn test_send_tip_insufficient_xlm() {
 
     let broke = Address::generate(&env);
     let message = String::from_str(&env, "no funds");
-    let result = client.try_send_tip(&broke, &creator, &10_000_000, &message, &false);
+    let result = client.try_send_tip(&broke, &creator, &10_000_000, &message, &false, &false);
     assert_eq!(result, Err(Ok(ContractError::InsufficientBalance)));
 }
 
@@ -270,9 +270,9 @@ fn test_send_tip_multiple() {
     let amount: i128 = 5_000_000;
 
     // Send 3 tips
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
 
     // Verify accumulated balance and counts
     env.as_contract(&contract_id, || {
@@ -346,8 +346,8 @@ fn test_send_tip_updates_leaderboard() {
     let message = String::from_str(&env, "tip");
 
     // creator1 receives 20 XLM, creator2 receives 10 XLM
-    client.send_tip(&tipper, &creator, &200_000_000, &message, &false);
-    client.send_tip(&tipper, &creator2, &100_000_000, &message, &false);
+    client.send_tip(&tipper, &creator, &200_000_000, &message, &false, &false);
+    client.send_tip(&tipper, &creator2, &100_000_000, &message, &false, &false);
 
     // Verify leaderboard data — total_tips_received correctly reflects
     // each creator's rank. The full leaderboard sort/query is in issue #17.
@@ -382,7 +382,7 @@ fn test_send_tip_updates_leaderboard_once() {
     let message = String::from_str(&env, "tip");
     let amount: i128 = 100_000_000;
 
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
 
     env.as_contract(&contract_id, || {
         let entries = crate::leaderboard::get_leaderboard(&env, crate::types::LeaderboardPeriod::AllTime, 0);
@@ -408,7 +408,7 @@ fn test_send_tip_empty_message_allowed() {
     let message = String::from_str(&env, "");
     let amount: i128 = 10_000_000;
 
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
 
     env.as_contract(&contract_id, || {
         let profile: Profile = env
@@ -429,7 +429,7 @@ fn test_send_tip_contract_sac_holds_transferred_xlm() {
     let amount: i128 = 10_000_000;
     let message = String::from_str(&env, "custody");
 
-    client.send_tip(&tipper, &creator, &amount, &message, &false);
+    client.send_tip(&tipper, &creator, &amount, &message, &false, &false);
 
     let after = token_client.balance(&contract_id);
     assert_eq!(after - before, amount);
@@ -473,9 +473,9 @@ fn test_get_tips_by_tipper_returns_correct_tips() {
     let msg2 = String::from_str(&env, "tip 2");
     let msg3 = String::from_str(&env, "tip 3");
 
-    client.send_tip(&tipper, &creator, &10_000_000, &msg1, &false);
-    client.send_tip(&tipper, &creator, &20_000_000, &msg2, &false);
-    client.send_tip(&tipper, &creator, &30_000_000, &msg3, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg1, &false, &false);
+    client.send_tip(&tipper, &creator, &20_000_000, &msg2, &false, &false);
+    client.send_tip(&tipper, &creator, &30_000_000, &msg3, &false, &false);
 
     let tips = client.get_tips_by_tipper(&tipper, &10);
     assert_eq!(tips.len(), 3);
@@ -491,9 +491,9 @@ fn test_get_tips_by_tipper_respects_limit() {
     let (env, client, _contract_id, tipper, creator, _sac) = setup_env();
 
     let msg = String::from_str(&env, "tip");
-    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false, &false);
 
     let tips = client.get_tips_by_tipper(&tipper, &2);
     assert_eq!(tips.len(), 2);
@@ -518,10 +518,10 @@ fn test_get_tipper_tip_count() {
     assert_eq!(client.get_tipper_tip_count(&tipper), 0);
 
     let msg = String::from_str(&env, "tip");
-    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false, &false);
     assert_eq!(client.get_tipper_tip_count(&tipper), 1);
 
-    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false, &false);
     assert_eq!(client.get_tipper_tip_count(&tipper), 2);
 }
 
@@ -535,9 +535,9 @@ fn test_get_tips_by_tipper_isolates_tippers() {
     asset.mint(&tipper2, &100_000_000_000);
 
     let msg = String::from_str(&env, "tip");
-    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false);
-    client.send_tip(&tipper2, &creator, &20_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false, &false);
+    client.send_tip(&tipper2, &creator, &20_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false, &false);
 
     let tips1 = client.get_tips_by_tipper(&tipper, &10);
     assert_eq!(tips1.len(), 2);
@@ -556,9 +556,9 @@ fn test_get_recent_tips_returns_newest_first() {
     let (env, client, _contract_id, tipper, creator, _sac) = setup_env();
 
     let msg = String::from_str(&env, "tip");
-    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false, &false);
 
     let tips = client.get_recent_tips(&creator, &10, &0);
     assert_eq!(tips.len(), 3);
@@ -572,10 +572,10 @@ fn test_get_recent_tips_offset_skips_newest() {
     let (env, client, _contract_id, tipper, creator, _sac) = setup_env();
 
     let msg = String::from_str(&env, "tip");
-    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &40_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &40_000_000, &msg, &false, &false);
 
     // Skip the 2 newest, get next 2
     let tips = client.get_recent_tips(&creator, &2, &2);
@@ -590,9 +590,9 @@ fn test_get_recent_tips_limit_capped_at_50() {
 
     let msg = String::from_str(&env, "tip");
     // Send 3 tips but request 100 — should return all 3 (capped internally)
-    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false);
-    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false, &false);
+    client.send_tip(&tipper, &creator, &30_000_000, &msg, &false, &false);
 
     let tips = client.get_recent_tips(&creator, &100, &0);
     assert_eq!(tips.len(), 3);
@@ -603,7 +603,7 @@ fn test_get_recent_tips_offset_beyond_count_returns_empty() {
     let (env, client, _contract_id, tipper, creator, _sac) = setup_env();
 
     let msg = String::from_str(&env, "tip");
-    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false, &false);
 
     let tips = client.get_recent_tips(&creator, &10, &100);
     assert_eq!(tips.len(), 0);
@@ -624,10 +624,10 @@ fn test_get_creator_tip_count() {
     assert_eq!(client.get_creator_tip_count(&creator), 0);
 
     let msg = String::from_str(&env, "tip");
-    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &10_000_000, &msg, &false, &false);
     assert_eq!(client.get_creator_tip_count(&creator), 1);
 
-    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false);
+    client.send_tip(&tipper, &creator, &20_000_000, &msg, &false, &false);
     assert_eq!(client.get_creator_tip_count(&creator), 2);
 }
 
@@ -638,7 +638,7 @@ fn test_get_recent_tips_pagination_full_walk() {
     let msg = String::from_str(&env, "tip");
     // Send 5 tips
     for i in 1..=5 {
-        client.send_tip(&tipper, &creator, &(i * 10_000_000), &msg, &false);
+        client.send_tip(&tipper, &creator, &(i * 10_000_000), &msg, &false, &false);
     }
 
     // Page 1: offset 0, limit 2 → tips 5, 4

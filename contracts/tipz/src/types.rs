@@ -191,12 +191,14 @@ pub struct Tip {
     pub creator: Address,
     /// Tip amount in stroops
     pub amount: i128,
-    /// Optional message (0-280 chars)
+    /// Optional message (0-280 chars) — may be encrypted
     pub message: String,
     /// Ledger timestamp at the time the tip was sent
     pub timestamp: u64,
     /// Whether this tip is anonymous
     pub is_anonymous: bool,
+    /// Whether the message is encrypted so only the recipient can read it
+    pub is_encrypted: bool,
 }
 
 /// Supporter/creator streak record.

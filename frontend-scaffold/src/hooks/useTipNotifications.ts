@@ -54,6 +54,7 @@ const formatTipBody = (tip: Tip) => {
     tip.tipper.length > 12
       ? `${tip.tipper.slice(0, 6)}...${tip.tipper.slice(-6)}`
       : tip.tipper;
+  if (tip.isEncrypted) return `${tipper}: 🔒 Encrypted message`;
   return tip.message ? `${tipper}: ${tip.message}` : `From ${tipper}`;
 };
 

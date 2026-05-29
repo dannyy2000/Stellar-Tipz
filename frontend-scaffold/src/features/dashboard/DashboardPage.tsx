@@ -28,6 +28,7 @@ import SettingsTab from "./SettingsTab";
 import TipsTab from "./TipsTab";
 import TipsChart from "./TipsChart";
 import FavoritesList from "./FavoritesList";
+import ProfileCompletion from "./ProfileCompletion";
 import { DashboardProvider } from "./DashboardContext";
 
 const DashboardPage: React.FC = () => {
@@ -231,7 +232,7 @@ const DashboardPage: React.FC = () => {
               <p className="text-sm font-bold text-gray-700">
                 {stroopToXlm(latestTip.amount)} XLM from{" "}
                 {latestTip.tipper.slice(0, 6)}...{latestTip.tipper.slice(-6)}
-                {latestTip.message ? ` - ${latestTip.message}` : ""}
+                {latestTip.isEncrypted ? ' - 🔒 Encrypted message' : latestTip.message ? ` - ${latestTip.message}` : ""}
               </p>
             </div>
           </div>
@@ -246,6 +247,8 @@ const DashboardPage: React.FC = () => {
           </Button>
         </section>
       )}
+
+      <ProfileCompletion />
 
       {tips.length === 0 && creator.totalTipsCount === 0 && (
         <section

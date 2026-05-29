@@ -17,7 +17,7 @@ export type TipFlowStep =
 
 interface UseTipFlowReturn {
   step: TipFlowStep;
-  goToConfirm: (amount: string, message: string) => void;
+  goToConfirm: (amount: string, message: string, isEncrypted?: boolean) => void;
   confirmAndSign: () => Promise<void>;
   retry: () => Promise<void>;
   reset: () => void;
@@ -31,6 +31,7 @@ export const useTipFlow = (creatorAddress: string): UseTipFlowReturn => {
   const [draft, setDraft] = useState<{
     amount: string;
     message: string;
+    isEncrypted: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -57,8 +58,8 @@ export const useTipFlow = (creatorAddress: string): UseTipFlowReturn => {
     return () => clearTimeout(timeoutId);
   }, [txStatus]);
 
-  const goToConfirm = useCallback((amount: string, message: string) => {
-    setDraft({ amount, message });
+  const goToConfirm = useCallback((amount: string, message: string, isEncrypted = false) => {
+    setDraft({ amount, message, isEncrypted });
     setStep("confirm");
   }, []);
 
@@ -90,7 +91,7 @@ export const useTipFlow = (creatorAddress: string): UseTipFlowReturn => {
       return;
     }
 
-    await sendTip(creatorAddress, draft.amount, draft.message);
+    await sendTip(creatorAddress, draft.amount, draft.message, draft.isEncrypted);
   }, [creatorAddress, draft, sendTip]);
 
   const reset = useCallback(() => {

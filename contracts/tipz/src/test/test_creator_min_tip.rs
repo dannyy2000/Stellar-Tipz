@@ -48,10 +48,10 @@ fn test_creator_custom_min_tip() {
 
     client.set_min_tip(&creator, &500_i128);
 
-    let result = client.try_send_tip(&tipper, &creator, &100_i128, &msg, &false);
+    let result = client.try_send_tip(&tipper, &creator, &100_i128, &msg, &false, &false);
     assert_eq!(result, Err(Ok(ContractError::BelowCreatorMinimum)));
 
-    client.send_tip(&tipper, &creator, &500_i128, &msg, &false);
+    client.send_tip(&tipper, &creator, &500_i128, &msg, &false, &false);
 }
 
 #[test]

@@ -697,6 +697,7 @@ export const useContract = () => {
       creator: string,
       amount: string,
       message: string,
+      isEncrypted = false,
     ): Promise<string> => {
       const publicKey = wallet.publicKey;
       if (!publicKey) throw new Error("Wallet not connected");
@@ -721,6 +722,8 @@ export const useContract = () => {
               accountToScVal(creator),
               numberToI128(safeStringToBigInt(stroopAmount)),
               nativeToScVal(message),
+              nativeToScVal(false, { type: "bool" }),
+              nativeToScVal(isEncrypted, { type: "bool" }),
             ),
           )
           .setTimeout(TimeoutInfinite)

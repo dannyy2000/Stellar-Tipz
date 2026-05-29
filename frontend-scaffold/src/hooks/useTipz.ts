@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useContract } from './useContract';
+import { useWallet } from './useWallet';
+import { encryptMessage } from '../helpers/encryption';
 import { logger } from '../services/logger';
 
 export type TxStatus = 'idle' | 'signing' | 'submitting' | 'confirming' | 'success' | 'error';
@@ -13,7 +15,7 @@ interface TipState {
 }
 
 interface UseTipzReturn extends TipState {
-  sendTip: (creator: string, amount: string, message: string) => Promise<void>;
+  sendTip: (creator: string, amount: string, message: string, isEncrypted?: boolean) => Promise<void>;
   withdrawTips: (amount: string) => Promise<string>;
   reset: () => void;
 }
@@ -30,7 +32,20 @@ export const useTipz = (): UseTipzReturn => {
   const [state, setState] = useState<TipState>(initialState);
   const { sendTip: contractSendTip, withdrawTips: contractWithdrawTips } = useContract();
 
-  const sendTip = useCallback(async (creator: string, amount: string, message: string): Promise<void> => {
+  const { publicKey } = useWallet();
+
+  const sendTip = useCallback(async (creator: string, amount: string, message: string, isEncrypted?: boolean): Promise<void> => {
+    let finalMessage = message;
+    if (isEncrypted) {
+      try {
+        finalMessage = encryptMessage(message, creator);
+      } catch (err) {
+        const errMsg = 'Failed to encrypt message';
+        setState((prev) => ({ ...prev, sending: false, error: errMsg, txStatus: 'error' }));
+        throw new Error(errMsg);
+      }
+    }
+
     setState({ ...initialState, sending: true, txStatus: 'signing' });
     const submittingTimer = window.setTimeout(() => {
       setState((prev) =>
@@ -48,7 +63,7 @@ export const useTipz = (): UseTipzReturn => {
     }, 2400);
     try {
       // The useContract.sendTip method handles signing and submission
-      const result = await contractSendTip(creator, amount, message);
+      const result = await contractSendTip(creator, amount, finalMessage, isEncrypted);
       window.clearTimeout(submittingTimer);
       window.clearTimeout(confirmingTimer);
       
@@ -71,7 +86,7 @@ export const useTipz = (): UseTipzReturn => {
       }));
       throw err; // Re-throw to allow component-level handling
     }
-  }, [contractSendTip]);
+  }, [contractSendTip, publicKey]);
 
   const withdrawTips = useCallback(async (amount: string): Promise<string> => {
     setState({ ...initialState, withdrawing: true, txStatus: 'signing' });

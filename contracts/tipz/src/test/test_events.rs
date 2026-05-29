@@ -64,7 +64,7 @@ fn test_event_tip_sent() {
     let message = String::from_str(&env, "thanks!");
 
     env.as_contract(&contract_id, || {
-        events::emit_tip_sent(&env, 0, &from, &to, 5_000_000, &message, 1234567890, false);
+        events::emit_tip_sent(&env, 0, &from, &to, 5_000_000, &message, 1234567890, false, false);
     });
 
     let all = env.events().all();
@@ -90,6 +90,7 @@ fn test_event_tip_sent_contains_all_indexing_fields() {
     env.as_contract(&contract_id, || {
         events::emit_tip_sent(
             &env, tip_id, &tipper, &creator, amount, &message, timestamp, false,
+            false,
         );
     });
 
@@ -102,14 +103,15 @@ fn test_event_tip_sent_contains_all_indexing_fields() {
     assert_topic!(topics.get(0).unwrap(), symbol_short!("tip"));
     assert_topic!(topics.get(1).unwrap(), symbol_short!("sent"));
 
-    // Verify data contains all 7 fields by decoding the tuple
-    let (ev_tip_id, ev_tipper, ev_creator, ev_amount, ev_message, ev_timestamp, ev_is_anonymous): (
+    // Verify data contains all 8 fields by decoding the tuple
+    let (ev_tip_id, ev_tipper, ev_creator, ev_amount, ev_message, ev_timestamp, ev_is_anonymous, ev_is_encrypted): (
         u32,
         Address,
         Address,
         i128,
         String,
         u64,
+        bool,
         bool,
     ) = soroban_sdk::FromVal::from_val(&env, &data);
 

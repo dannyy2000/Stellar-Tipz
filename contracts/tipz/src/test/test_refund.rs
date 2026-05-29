@@ -71,6 +71,7 @@ fn test_refund_within_window() {
         &tip_amount,
         &String::from_str(&env, "Great work!"),
         &false,
+        &false,
     );
 
     let tip_id = 0_u32;
@@ -126,6 +127,7 @@ fn test_refund_after_window_fails() {
         &tip_amount,
         &String::from_str(&env, "Great work!"),
         &false,
+        &false,
     );
 
     let tip_id = 0_u32;
@@ -165,6 +167,7 @@ fn test_auto_approve_after_timeout() {
         &creator,
         &tip_amount,
         &String::from_str(&env, "Great work!"),
+        &false,
         &false,
     );
 
@@ -219,6 +222,7 @@ fn test_creator_rejects_refund() {
         &tip_amount,
         &String::from_str(&env, "Great work!"),
         &false,
+        &false,
     );
 
     let tip_id = 0_u32;
@@ -258,6 +262,7 @@ fn test_refund_already_requested() {
         &tip_amount,
         &String::from_str(&env, "Great work!"),
         &false,
+        &false,
     );
 
     let tip_id = 0_u32;
@@ -290,6 +295,7 @@ fn test_refund_not_tipper() {
         &tip_amount,
         &String::from_str(&env, "Great work!"),
         &false,
+        &false,
     );
 
     let tip_id = 0_u32;
@@ -318,6 +324,7 @@ fn test_refund_not_creator_approve() {
         &creator,
         &tip_amount,
         &String::from_str(&env, "Great work!"),
+        &false,
         &false,
     );
 
@@ -349,6 +356,7 @@ fn test_refund_already_processed() {
         &creator,
         &tip_amount,
         &String::from_str(&env, "Great work!"),
+        &false,
         &false,
     );
 
@@ -435,6 +443,7 @@ fn test_refund_updates_credit_score() {
         &tip_amount,
         &String::from_str(&env, "Great work!"),
         &false,
+        &false,
     );
 
     let profile_before = client.get_profile(&creator);
@@ -472,6 +481,7 @@ fn test_refund_multiple_tips() {
             &tip_amount,
             &String::from_str(&env, "Great work!"),
             &false,
+            &false,
         );
     }
 
@@ -505,6 +515,7 @@ fn test_process_pending_refunds_multiple() {
             &creator,
             &tip_amount,
             &String::from_str(&env, "Great work!"),
+            &false,
             &false,
         );
     }
@@ -559,6 +570,7 @@ fn test_refund_no_request_exists() {
         &creator,
         &tip_amount,
         &String::from_str(&env, "Great work!"),
+        &false,
         &false,
     );
 

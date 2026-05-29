@@ -43,12 +43,14 @@ fn test_platform_stats() {
         &1_000_000,
         &String::from_str(&env, "tip1"),
         &false,
+        &false,
     );
     client.send_tip(
         &tipper,
         &creator2,
         &2_000_000,
         &String::from_str(&env, "tip2"),
+        &false,
         &false,
     );
     client.send_tip(
@@ -57,6 +59,7 @@ fn test_platform_stats() {
         &3_000_000,
         &String::from_str(&env, "tip3"),
         &false,
+        &false,
     );
     client.send_tip(
         &tipper,
@@ -64,12 +67,14 @@ fn test_platform_stats() {
         &4_000_000,
         &String::from_str(&env, "tip4"),
         &false,
+        &false,
     );
     client.send_tip(
         &tipper,
         &creator2,
         &5_000_000,
         &String::from_str(&env, "tip5"),
+        &false,
         &false,
     );
 
@@ -99,6 +104,7 @@ fn test_stats_update_on_tip() {
         &1_000_000,
         &String::from_str(&env, "tip"),
         &false,
+        &false,
     );
 
     let after = client.get_platform_stats();
@@ -125,12 +131,14 @@ fn test_creator_stats() {
         &5_000_000,
         &String::from_str(&env, "tip1"),
         &false,
+        &false,
     );
     client.send_tip(
         &tipper,
         &creator,
         &10_000_000,
         &String::from_str(&env, "tip2"),
+        &false,
         &false,
     );
 
@@ -160,6 +168,7 @@ fn test_24h_stats_tracking() {
         &1_000_000,
         &String::from_str(&env, "tip"),
         &false,
+        &false,
     );
 
     let stats = client.get_platform_stats();
@@ -185,6 +194,7 @@ fn test_stats_after_withdrawal() {
         &creator,
         &10_000_000,
         &String::from_str(&env, "tip"),
+        &false,
         &false,
     );
 
@@ -217,6 +227,7 @@ fn test_platform_stats_multiple_creators() {
             &creator,
             &((i + 1) as i128 * 1_000_000),
             &String::from_str(&env, "tip"),
+            &false,
             &false,
         );
     }

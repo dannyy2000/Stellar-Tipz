@@ -59,6 +59,7 @@ fn test_integer_overflow_protection() {
         &-1i128,
         &String::from_str(&env, "msg"),
         &false,
+        &false,
     );
     assert_eq!(result, Err(Ok(ContractError::InvalidAmount)));
 
@@ -84,12 +85,14 @@ fn test_state_consistency() {
         &tip_amount,
         &String::from_str(&env, "msg1"),
         &false,
+        &false,
     );
     client.send_tip(
         &tipper,
         &creator2,
         &tip_amount,
         &String::from_str(&env, "msg2"),
+        &false,
         &false,
     );
 
@@ -132,6 +135,7 @@ fn test_storage_bounds() {
             &creator,
             &100_i128,
             &String::from_str(&env, "msg"),
+            &false,
             &false,
         );
     }

@@ -37,6 +37,7 @@ export interface RawTip {
   amount: string;
   message: string;
   timestamp: number;
+  is_encrypted?: boolean;
 }
 
 /** Raw leaderboard entry before key mapping. */
@@ -93,6 +94,7 @@ export interface Tip {
   amount: string; // i128 as string
   message: string;
   timestamp: number;
+  isEncrypted?: boolean;
 }
 
 /** Leaderboard entry */
@@ -132,6 +134,21 @@ export const getCreditTier = (score: number): CreditTier => {
   if (score >= 20) return "bronze";
   return "new";
 };
+
+/** Fundraising goal for a creator */
+export interface Goal {
+  creator: string;
+  title: string;
+  description: string;
+  targetAmount: string; // i128 as string (stroops)
+  raisedAmount: string;
+  supporters: number;
+  startDate: number;
+  endDate: number;
+  active: boolean;
+  completed: boolean;
+  completedAt?: number;
+}
 
 /** Recurring tip subscription from the contract */
 export interface Subscription {

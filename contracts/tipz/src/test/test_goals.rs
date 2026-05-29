@@ -33,7 +33,7 @@ fn test_set_and_track_goal() {
     client.set_goal(&creator, &1000, &desc, &deadline);
 
     // Send tip
-    client.send_tip(&tipper, &creator, &500, &String::from_str(&env, "Good luck!"), &false);
+    client.send_tip(&tipper, &creator, &500, &String::from_str(&env, "Good luck!"), &false, &false);
 
     // Check goal progress
     let goal = client.get_goal(&creator);
@@ -68,7 +68,7 @@ fn test_goal_reached_event() {
     client.set_goal(&creator, &100, &desc, &0);
 
     // Send tip that reaches goal
-    client.send_tip(&tipper, &creator, &100, &String::from_str(&env, "Here you go!"), &false);
+    client.send_tip(&tipper, &creator, &100, &String::from_str(&env, "Here you go!"), &false, &false);
 
     // Check goal is reached
     let goal = client.get_goal(&creator);

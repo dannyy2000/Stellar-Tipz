@@ -25,6 +25,7 @@ pub fn store_tip(
     amount: i128,
     message: String,
     is_anonymous: bool,
+    is_encrypted: bool,
 ) -> u32 {
     let tip_id = storage::increment_tip_count(env);
     store_tip_with_id(
@@ -36,6 +37,7 @@ pub fn store_tip(
         amount,
         message,
         is_anonymous,
+        is_encrypted,
     );
     tip_id
 }
@@ -49,6 +51,7 @@ fn store_tip_with_id(
     amount: i128,
     message: String,
     is_anonymous: bool,
+    is_encrypted: bool,
 ) {
     let key = DataKey::Tip(tip_id);
     let tip = Tip {
@@ -64,6 +67,7 @@ fn store_tip_with_id(
         message,
         timestamp: env.ledger().timestamp(),
         is_anonymous,
+        is_encrypted,
     };
 
     env.storage().temporary().set(&key, &tip);
@@ -156,6 +160,7 @@ pub fn send_tip(
     amount: i128,
     message: &String,
     is_anonymous: bool,
+    is_encrypted: bool,
 ) -> Result<(), ContractError> {
     storage::extend_instance_ttl(env);
     let config = storage::get_runtime_config(env).ok_or(ContractError::NotInitialized)?;
@@ -244,6 +249,7 @@ pub fn send_tip(
         amount,
         message.clone(),
         is_anonymous,
+        is_encrypted,
     );
     storage::add_tipper_tip(env, tipper, tip_id);
     storage::add_creator_tip(env, creator, tip_id);
@@ -261,6 +267,7 @@ pub fn send_tip(
         message,
         timestamp,
         is_anonymous,
+        is_encrypted,
     );
 
     Ok(())
@@ -329,6 +336,7 @@ pub fn send_tip_on_behalf(
         amount,
         message.clone(),
         false,
+        false,
     );
     storage::add_tipper_tip(env, sender, tip_id);
     storage::add_tipper_tip(env, on_behalf_of, tip_id); // Also show in benefactor's history
@@ -340,7 +348,7 @@ pub fn send_tip_on_behalf(
     crate::stats::mark_creator_active(env, creator);
 
     emit_tip_sent(
-        env, tip_id, sender, creator, amount, message, timestamp, false,
+        env, tip_id, sender, creator, amount, message, timestamp, false, false,
     );
 
     Ok(())
@@ -595,6 +603,7 @@ pub fn deliver_scheduled_tip(
         scheduled_tip.amount,
         scheduled_tip.message.clone(),
         false,
+        false,
     );
     storage::add_tipper_tip(env, &scheduled_tip.sender, tip_id);
     storage::add_creator_tip(env, &scheduled_tip.creator, tip_id);
@@ -613,6 +622,7 @@ pub fn deliver_scheduled_tip(
         scheduled_tip.amount,
         &scheduled_tip.message,
         now,
+        false,
         false,
     );
 

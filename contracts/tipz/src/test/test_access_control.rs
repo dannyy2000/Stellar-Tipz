@@ -128,6 +128,7 @@ fn test_fee_collector_only_receives_fees_on_withdrawal() {
         &100_000_000_i128,
         &String::from_str(&ctx.env, "tip"),
         &false,
+        &false,
     );
     // Withdraw; fee goes to fee_collector, not arbitrary address
     ctx.client.withdraw_tips(&ctx.creator, &50_000_000_i128);
@@ -190,6 +191,7 @@ fn test_pause_blocks_send_tip() {
         &1_000_000_i128,
         &String::from_str(&ctx.env, "msg"),
         &false,
+        &false,
     );
     assert_eq!(result, Err(Ok(ContractError::ContractPaused)));
 }
@@ -203,6 +205,7 @@ fn test_pause_blocks_withdraw_tips() {
         &ctx.creator,
         &10_000_000_i128,
         &String::from_str(&ctx.env, "tip"),
+        &false,
         &false,
     );
     ctx.client.pause(&ctx.admin);
