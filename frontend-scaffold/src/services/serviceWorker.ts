@@ -48,6 +48,8 @@ function notifyUpdateAvailable(): void {
 // ---------------------------------------------------------------------------
 
 /** Register the service worker and wire up update detection. */
+import { logger } from "./logger";
+
 export async function register(): Promise<void> {
   if (!('serviceWorker' in navigator)) return;
 
@@ -81,9 +83,18 @@ export async function register(): Promise<void> {
     });
 
     // Proactively check for updates.
-    registration.update().catch(() => null);
+    try {
+      await registration.update();
+    } catch (err) {
+      logger.warn(
+        'services/serviceWorker',
+        'registration.update() failed',
+        undefined,
+        err instanceof Error ? err : new Error(String(err)),
+      );
+    }
   } catch (err) {
-    console.warn('[SW] Registration failed:', err);
+    logger.warn('services/serviceWorker', 'SW registration failed', undefined, err instanceof Error ? err : new Error(String(err)));
   }
 }
 

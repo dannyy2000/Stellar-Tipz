@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useTipz } from "../../hooks";
 import { queueOfflineTip } from "../../services/serviceWorker";
+import { logger } from "../../services/logger";
 
 export type TipFlowStep =
   | "form"
@@ -71,11 +72,20 @@ export const useTipFlow = (creatorAddress: string): UseTipFlowReturn => {
 
     // Queue the operation if the user is currently offline.
     if (!navigator.onLine) {
-      await queueOfflineTip({
-        creator: creatorAddress,
-        amount: draft.amount,
-        message: draft.message,
-      }).catch(() => null);
+      try {
+        await queueOfflineTip({
+          creator: creatorAddress,
+          amount: draft.amount,
+          message: draft.message,
+        });
+      } catch (err) {
+        logger.warn(
+          'features/tipping/useTipFlow',
+          'queueOfflineTip failed',
+          { creator: creatorAddress },
+          err instanceof Error ? err : new Error(String(err)),
+        );
+      }
       setStep("queued");
       return;
     }

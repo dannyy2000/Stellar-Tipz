@@ -14,6 +14,8 @@ interface EncryptedPayload {
   expiry: number | null;
 }
 
+import { logger } from "./logger";
+
 class SecureStorage {
   private isCryptoAvailable: boolean;
   private memoryStorage: Map<string, any> = new Map();
@@ -28,7 +30,7 @@ class SecureStorage {
       typeof window.crypto.subtle !== 'undefined';
     
     if (!this.isCryptoAvailable) {
-      console.warn('Web Crypto API not available. Falling back to in-memory storage.');
+      logger.warn('services/secureStorage', 'Web Crypto API not available. Falling back to in-memory storage.');
     } else {
       // Background cleanup of expired entries
       setTimeout(() => this.pruneExpiredEntries(), 1000);
@@ -154,7 +156,7 @@ class SecureStorage {
 
       localStorage.setItem(fullKey, JSON.stringify(payload));
     } catch (error) {
-      console.error('Encryption failed:', error);
+      logger.error('services/secureStorage', 'Encryption failed', undefined, error instanceof Error ? error : new Error(String(error)));
       // Fallback to memory on error
       this.memoryStorage.set(fullKey, { value, expiry });
     }
@@ -203,7 +205,7 @@ class SecureStorage {
       const decoder = new TextDecoder();
       return JSON.parse(decoder.decode(decryptedData));
     } catch (error) {
-      console.error('Decryption failed or data tampered:', error);
+      logger.error('services/secureStorage', 'Decryption failed or data tampered', undefined, error instanceof Error ? error : new Error(String(error)));
       return null;
     }
   }

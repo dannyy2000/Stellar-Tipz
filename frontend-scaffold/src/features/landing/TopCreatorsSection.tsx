@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
 import { categorizeError } from "@/helpers/error";
 import { env } from "@/helpers/env";
+import { logger } from "../../services/logger";
 import { mockLeaderboard } from "@/features/mockData";
 
 export default function TopCreatorsSection() {
@@ -36,7 +37,7 @@ export default function TopCreatorsSection() {
       const data = await getLeaderboard(5);
       setCreators(data);
     } catch (err) {
-      console.error('Failed to fetch leaderboard:', err);
+      logger.error('features/landing/TopCreatorsSection', 'Failed to fetch leaderboard', undefined, err instanceof Error ? err : new Error(String(err)));
       setError(String(err));
     } finally {
       setLoading(false);
@@ -67,7 +68,7 @@ export default function TopCreatorsSection() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Failed to fetch leaderboard:", err);
+        logger.error('features/landing/TopCreatorsSection', 'Failed to fetch leaderboard', undefined, err instanceof Error ? err : new Error(String(err)));
         setError(String(err));
         setLoading(false);
       });

@@ -10,6 +10,7 @@ import {
   formatXlmDisplay,
 } from "../../helpers/format";
 import { useWallet, useContract, useBalance } from "../../hooks";
+import { logger } from '../../services/logger';
 import { BASE_FEE } from "../../services";
 import FeeBreakdown from "./FeeBreakdown";
 import Skeleton from "../../components/ui/Skeleton";
@@ -49,7 +50,7 @@ const TipAmountInput: React.FC<TipAmountInputProps> = ({
           setMinTipXlm(minTip);
         }
       } catch (err) {
-        console.error("Failed to fetch minimum tip amount:", err);
+        logger.warn('features/tipping/TipAmountInput', 'Failed to fetch minimum tip amount', undefined, err instanceof Error ? err : new Error(String(err)));
         // Use default if fetch fails
         if (active) {
           setMinTipXlm(DEFAULT_MIN_TIP_XLM);

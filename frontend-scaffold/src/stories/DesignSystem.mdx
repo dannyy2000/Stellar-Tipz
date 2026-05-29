@@ -1,0 +1,46 @@
+{/* Design System Overview — no imports needed, pure MDX */}
+
+# Stellar Tipz Design System
+
+Stellar Tipz uses a **brutalist minimalism** design language — bold, honest, and unapologetically functional.
+
+## Colors
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| Black | `#000000` | Primary text, borders, shadows |
+| White | `#FFFFFF` | Backgrounds, primary button text |
+| Off-white | `#FAFAFA` | Page backgrounds |
+
+## Typography
+
+- **Font**: Inter / Space Grotesk (bold, clean sans-serif)
+- **Style**: Uppercase labels, heavy weights (`font-black`, `font-bold`)
+- **Tracking**: Wide letter-spacing on labels and badges
+
+## Borders & Shadows
+
+All interactive elements use:
+- **Border**: `2–3px solid black`
+- **Shadow**: `4px 4px 0px 0px rgba(0,0,0,1)` (brutalist offset shadow)
+- **Hover**: `-2px -2px translate` + larger shadow for lift effect
+
+## Spacing
+
+Tailwind's default scale. Cards use `p-4` (sm), `p-6` (md), `p-8` (lg).
+
+## Credit Score Tiers
+
+| Tier | Score | Color |
+|------|-------|-------|
+| ⭐ New | 0–400 | Gray |
+| 🥉 Bronze | 401–700 | Orange |
+| 🥈 Silver | 701–900 | Gray-300 |
+| 🥇 Gold | 901–1000 | Yellow-400 |
+| 💎 Diamond | 1000+ | Blue-200 |
+
+## Component Principles
+
+1. **Accessibility first** — all interactive elements have focus rings and ARIA labels
+2. **Mobile-first** — components are responsive by default
+3. **No external dependencies** — pure Tailwind + Lucide icons

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '../services/logger';
 
 type TransactionStatus = 'idle' | 'pending' | 'success' | 'error';
 
@@ -62,7 +63,7 @@ export function useTransactionGuard(timeoutMs: number = 120_000): UseTransaction
   const startTransaction = useCallback(async <T,>(transaction: () => Promise<T>): Promise<T | null> => {
     // Reject if a transaction is already in progress
     if (transactionLockRef.current || isPending) {
-      console.warn('Transaction already in progress, rejecting duplicate submission');
+      logger.warn('hooks/useTransactionGuard', 'Transaction already in progress, rejecting duplicate submission');
       return null;
     }
 
@@ -73,7 +74,7 @@ export function useTransactionGuard(timeoutMs: number = 120_000): UseTransaction
     timeoutRef.current = setTimeout(() => {
       setStatus('error');
       transactionLockRef.current = false;
-      console.warn('Transaction timed out');
+      logger.warn('hooks/useTransactionGuard', 'Transaction timed out');
     }, timeoutMs);
 
     try {

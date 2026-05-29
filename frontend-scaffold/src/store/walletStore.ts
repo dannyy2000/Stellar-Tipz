@@ -1,6 +1,8 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { WalletErrorType } from '../helpers/error';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { secureStorage } from "../services/secureStorage";
+import type { WalletErrorType } from "../helpers/error";
+import { setUser } from "../services/sentry";
 
 export type Network = 'TESTNET' | 'PUBLIC';
 type SigningStatus = 'idle' | 'signing' | 'signed' | 'error';
@@ -77,22 +79,81 @@ const initialWalletState: WalletState = {
 
 export const useWalletStore = create<WalletStore>()(
   persist(
-    (set) => ({
-      publicKey: null,
-      connected: false,
-      connecting: false,
-      isReconnecting: false,
-      error: null,
-      walletError: null,
-      network: 'TESTNET',
-      walletType: null,
-      signingStatus: 'idle',
+    (set, get) => ({
+      ...initialWalletState,
 
-      connect: (publicKey: string, walletType?: string) =>
-        set({ publicKey, connected: true, connecting: false, isReconnecting: false, error: null, walletError: null, walletType: walletType ?? null }),
+      connect: (publicKey: string, walletType?: string) => {
+        const { wallets } = get();
+        const wt = walletType ?? null;
+        const already = wallets.find((w) => w.publicKey === publicKey);
+        const updatedWallets: ConnectedWallet[] = already
+          ? wallets
+          : [...wallets, { publicKey, walletType: wt ?? 'unknown' }];
+        set({
+          wallets: updatedWallets,
+          activeWalletKey: publicKey,
+          publicKey,
+          connected: true,
+          connecting: false,
+          isReconnecting: false,
+          error: null,
+          walletError: null,
+          walletType: wt,
+          sessionExpiresAt: Date.now() + SESSION_TIMEOUT_MS,
+        });
+        setUser(publicKey);
+      },
 
-      disconnect: () =>
-        set({ publicKey: null, connected: false, error: null, walletError: null, walletType: null, signingStatus: 'idle' }),
+      setAddress: (publicKey: string, walletType?: string) => {
+        get().connect(publicKey, walletType);
+      },
+
+      disconnect: () => {
+        setUser(null);
+        set({
+          wallets: [],
+          activeWalletKey: null,
+          publicKey: null,
+          connected: false,
+          error: null,
+          walletError: null,
+          walletType: null,
+          signingStatus: 'idle',
+          sessionExpiresAt: null,
+        });
+      },
+
+      clearAddress: () => {
+        get().disconnect();
+      },
+
+      removeWallet: (publicKey: string) => {
+        const { wallets, activeWalletKey } = get();
+        const remaining = wallets.filter((w) => w.publicKey !== publicKey);
+        const newActive =
+          activeWalletKey === publicKey
+            ? (remaining[0]?.publicKey ?? null)
+            : activeWalletKey;
+        const newActiveWallet = remaining.find((w) => w.publicKey === newActive) ?? null;
+        set({
+          wallets: remaining,
+          activeWalletKey: newActive,
+          publicKey: newActive,
+          connected: remaining.length > 0,
+          walletType: newActiveWallet?.walletType ?? null,
+        });
+      },
+
+      setActiveWallet: (publicKey: string) => {
+        const { wallets } = get();
+        const wallet = wallets.find((w) => w.publicKey === publicKey);
+        if (!wallet) return;
+        set({
+          activeWalletKey: publicKey,
+          publicKey,
+          walletType: wallet.walletType,
+        });
+      },
 
       setConnecting: (connecting: boolean) => set({ connecting }),
 

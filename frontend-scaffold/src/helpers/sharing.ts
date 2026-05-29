@@ -10,6 +10,8 @@ interface ShareData {
 type SharePlatform = 'twitter' | 'facebook' | 'linkedin' | 'reddit';
 type ShareType = 'tip' | 'achievement' | 'profile';
 
+import { logger } from '../services/logger';
+
 const BASE_URL = 'https://tipz.app';
 
 /**
@@ -119,7 +121,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       return success;
     }
   } catch (err) {
-    console.error('Failed to copy to clipboard:', err);
+    logger.error('helpers/sharing', 'Failed to copy to clipboard', undefined, err instanceof Error ? err : new Error(String(err)));
     return false;
   }
 }
@@ -148,7 +150,7 @@ export async function nativeShare(
     return true;
   } catch (err) {
     // User cancelled or error occurred
-    console.error('Native share failed:', err);
+    logger.error('helpers/sharing', 'Native share failed', undefined, err instanceof Error ? err : new Error(String(err)));
     return false;
   }
 }

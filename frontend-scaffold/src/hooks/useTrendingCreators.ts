@@ -3,6 +3,7 @@ import { useContract } from "./useContract";
 import { LeaderboardEntry, Tip } from "../types/contract";
 import { env } from "../helpers/env";
 import { mockLeaderboard, mockTips } from "../features/mockData";
+import { logger } from '../services/logger';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
@@ -101,7 +102,10 @@ export function useTrendingCreators(limit = 10) {
       // Fetch tips for top creators (limit to avoid too many requests)
       const topCreators = leaderboard.slice(0, 20);
       const tipPromises = topCreators.map((creator) =>
-        getRecentTips(creator.address, 100, 0).catch(() => [] as Tip[]),
+        getRecentTips(creator.address, 100, 0).catch((err) => {
+          logger.warn('hooks/useTrendingCreators', 'getRecentTips failed for creator', { address: creator.address }, err instanceof Error ? err : new Error(String(err)));
+          return [] as Tip[];
+        }),
       );
 
       const tipResults = await Promise.all(tipPromises);
@@ -140,7 +144,7 @@ export function useTrendingCreators(limit = 10) {
         cache = { data: trending, timestamp: Date.now() };
       }
     } catch (err) {
-      console.error("Failed to fetch trending creators:", err);
+      logger.error('hooks/useTrendingCreators', 'Failed to fetch trending creators', undefined, err instanceof Error ? err : new Error(String(err)));
       setError(
         err instanceof Error ? err.message : "Failed to load trending creators",
       );

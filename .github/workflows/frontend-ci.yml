@@ -73,4 +73,4 @@ jobs:
             size=$(du -h "$file" | cut -f1)
             echo "| $file | $size |" >> $GITHUB_STEP_SUMMARY
           done
-        run: npm run build
+        

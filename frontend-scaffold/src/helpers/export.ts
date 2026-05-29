@@ -1,4 +1,5 @@
 import { stroopToXlm } from './format';
+import { logger } from '../services/logger';
 
 export interface TipHistoryItem {
   date: string | number; // Unix timestamp in seconds or date string (YYYY-MM-DD)
@@ -121,7 +122,7 @@ export function exportTipHistoryCSV(
       URL.revokeObjectURL(url);
     })
     .catch((err) => {
-      console.error('Export CSV failed:', err);
+      logger.error('helpers/export', 'Export CSV failed', undefined, err instanceof Error ? err : new Error(String(err)));
       alert('Failed to export CSV');
     });
 }
@@ -249,7 +250,7 @@ export function exportTipHistoryPDF(
       URL.revokeObjectURL(url);
     })
     .catch((err) => {
-      console.error('Export PDF failed:', err);
+      logger.error('helpers/export', 'Export PDF failed', undefined, err instanceof Error ? err : new Error(String(err)));
       alert('Failed to export PDF');
     });
 }

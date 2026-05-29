@@ -7,6 +7,7 @@ import { Profile, ContractStats, Tip } from '../types/contract';
 import { categorizeError, ERRORS } from '@/helpers/error';
 import { env } from '../helpers/env';
 import { mockProfile, mockTips } from '../features/mockData';
+import { logger } from '../services/logger';
 
 const REFETCH_INTERVAL_MS = 30_000;
 
@@ -138,7 +139,7 @@ export const useDashboard = (): DashboardData => {
         setStats(statsResult.value);
       } else if (statsResult.status === 'rejected') {
         const err = statsResult.reason;
-        console.error('Failed to fetch stats:', err);
+        logger.error('hooks/useDashboard', 'Failed to fetch stats', undefined, err instanceof Error ? err : new Error(String(err)));
         addToast({ 
           message: categorizeError(err).category === 'network' ? ERRORS.NETWORK : 'Could not fetch latest platform stats.', 
           type: 'error' 
@@ -148,7 +149,7 @@ export const useDashboard = (): DashboardData => {
       if (tipsResult.status === 'fulfilled') {
         setTips(tipsResult.value);
       } else if (tipsResult.status === 'rejected') {
-        console.error('Failed to fetch tips:', tipsResult.reason);
+        logger.error('hooks/useDashboard', 'Failed to fetch tips', undefined, tipsResult.reason instanceof Error ? tipsResult.reason : new Error(String(tipsResult.reason)));
       }
 
       if (profileResult.status === 'fulfilled') {

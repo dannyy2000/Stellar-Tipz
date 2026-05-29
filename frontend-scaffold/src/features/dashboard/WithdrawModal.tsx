@@ -7,6 +7,7 @@ import Input from "../../components/ui/Input";
 import Modal from "../../components/ui/Modal";
 import { stroopToXlmBigNumber, xlmToStroop } from "../../helpers/format";
 import { useTipz } from "../../hooks";
+import { logger } from '../../services/logger';
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -103,7 +104,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
         txHash: hash,
       });
     } catch (err) {
-      console.error("Withdrawal failed:", err);
+      logger.error('features/dashboard/WithdrawModal', 'Withdrawal failed', undefined, err instanceof Error ? err : new Error(String(err)));
       onFailure?.();
     }
   };

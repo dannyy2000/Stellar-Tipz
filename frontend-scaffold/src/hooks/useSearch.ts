@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { logger } from "../services/logger";
 import Fuse, { IFuseOptions } from "fuse.js";
 import type { FuseResult, FuseResultMatch } from "fuse.js";
 import type { Profile } from "../types";
@@ -120,7 +121,15 @@ export const useSearch = () => {
       } else {
         const leaderboard = await getLeaderboard(50);
         const profilePromises = leaderboard.map((entry) =>
-          getProfile(entry.address).catch(() => null as Profile | null),
+          getProfile(entry.address).catch((err) => {
+            logger.warn(
+              'hooks/useSearch',
+              'getProfile failed',
+              { address: entry.address },
+              err instanceof Error ? err : new Error(String(err)),
+            );
+            return null as Profile | null;
+          }),
         );
         const profileResults = await Promise.all(profilePromises);
         const profiles = profileResults.filter((p): p is Profile => p !== null);
@@ -128,7 +137,7 @@ export const useSearch = () => {
         fuseRef.current = new Fuse(profiles, fuseOptions);
       }
     } catch (err) {
-      console.error("Failed to fetch profiles for search:", err);
+      logger.error('hooks/useSearch', 'Failed to fetch profiles for search', undefined, err instanceof Error ? err : new Error(String(err)));
     } finally {
       isFetchingRef.current = false;
     }

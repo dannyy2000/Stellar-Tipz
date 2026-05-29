@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useRef } from "react";
+import { logger } from '../services/logger';
 import {
   StellarWalletsKit,
   WalletNetwork,
@@ -33,20 +34,20 @@ const disposeKit = (kit: StellarWalletsKit | null) => {
   try {
     disposableKit.closeModal?.();
   } catch (error) {
-    console.warn("Failed to close wallet modal during cleanup:", error);
+    logger.warn('hooks/useWallet', 'Failed to close wallet modal during cleanup', undefined, error instanceof Error ? error : new Error(String(error)));
   }
 
   try {
     void disposableKit.disconnect?.();
   } catch (error) {
-    console.warn("Failed to disconnect wallet kit during cleanup:", error);
+    logger.warn('hooks/useWallet', 'Failed to disconnect wallet kit during cleanup', undefined, error instanceof Error ? error : new Error(String(error)));
   }
 
   try {
     disposableKit.removeAllListeners?.();
     disposableKit.destroy?.();
   } catch (error) {
-    console.warn("Failed to fully dispose wallet kit during cleanup:", error);
+    logger.warn('hooks/useWallet', 'Failed to fully dispose wallet kit during cleanup', undefined, error instanceof Error ? error : new Error(String(error)));
   }
 };
 
@@ -145,7 +146,7 @@ export const useWallet = () => {
     let cancelled = false;
     const timeoutId = setTimeout(() => {
       if (!cancelled) {
-        console.warn("Auto-reconnect timed out");
+        logger.warn('hooks/useWallet', 'Auto-reconnect timed out');
         setReconnecting(false);
         disconnect();
       }
@@ -161,10 +162,7 @@ export const useWallet = () => {
           connect(address, walletType);
         }
       } catch (err) {
-        console.warn(
-          "Auto-reconnect failed — wallet extension may be unavailable:",
-          err,
-        );
+        logger.warn('hooks/useWallet', 'Auto-reconnect failed — wallet extension may be unavailable', undefined, err instanceof Error ? err : new Error(String(err)));
         if (!cancelled) {
           // Clear persisted state so we don't retry on next load
           disconnect();
@@ -208,12 +206,11 @@ export const useWallet = () => {
         const startTimeout = () => {
           connectTimeoutRef.current = setTimeout(() => {
             if (!walletSelected) {
-              console.error(
-                "[Wallet] Connection timed out after 60s",
-              );
+              // connection timed out
               const classified = classifyWalletError(
                 new Error("Connection timed out"),
               );
+              logger.error('hooks/useWallet', '[Wallet] Connection timed out after 60s');
               setWalletError(classified);
               setError(classified.message);
               setConnecting(false);
@@ -253,13 +250,13 @@ export const useWallet = () => {
                     }
                   }
                 } catch (e) {
-                  console.warn("[Wallet] Network auto-detection failed:", e);
+                  logger.warn('hooks/useWallet', '[Wallet] Network auto-detection failed', undefined, e instanceof Error ? e : new Error(String(e)));
                 }
 
                 // connect() adds to the list and makes it active
                 connect(address, option.id);
               } catch (err) {
-                console.error("[Wallet] Wallet connection failed:", err);
+                logger.error('hooks/useWallet', '[Wallet] Wallet connection failed', undefined, err instanceof Error ? err : new Error(String(err)));
                 const classified = classifyWalletError(err);
                 setWalletError(classified);
                 setError(classified.message);
@@ -269,7 +266,7 @@ export const useWallet = () => {
           clearTimeout_();
           if (!walletSelected) {
             const timeoutErr = new Error("Connection popup closed without wallet selection");
-            console.warn("[Wallet] Popup closed without wallet selection");
+            logger.warn('hooks/useWallet', '[Wallet] Popup closed without wallet selection');
             const classified = classifyWalletError(timeoutErr);
             setWalletError(classified);
             setError(classified.message);
@@ -277,11 +274,7 @@ export const useWallet = () => {
           }
         } catch (err) {
           clearTimeout_();
-          console.error("[Wallet] Wallet connection error:", {
-            type: "openModal",
-            error: err instanceof Error ? err.message : String(err),
-            timestamp: new Date().toISOString(),
-          });
+          logger.error('hooks/useWallet', '[Wallet] Wallet connection error', { type: 'openModal', timestamp: new Date().toISOString() }, err instanceof Error ? err : new Error(String(err)));
           const classified = classifyWalletError(err);
           setWalletError(classified);
           setError(classified.message);
@@ -328,13 +321,13 @@ export const useWallet = () => {
                 storeSetNetwork(detectedNetwork);
               }
             } catch (e) {
-              console.warn("Network auto-detection failed:", e);
+              logger.warn('hooks/useWallet', 'Network auto-detection failed', undefined, e instanceof Error ? e : new Error(String(e)));
             }
           }
 
           connect(address, walletId);
         } catch (err) {
-          console.error("Wallet connection failed:", err);
+          logger.error('hooks/useWallet', 'Wallet connection failed', undefined, err instanceof Error ? err : new Error(String(err)));
           setError(
             err instanceof Error ? err.message : "Failed to connect wallet",
           );

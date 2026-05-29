@@ -5,6 +5,7 @@
  */
 
 import { SorobanRpc } from '@stellar/stellar-sdk';
+import { logger } from './logger';
 
 export interface FeeEstimation {
   estimatedFee: string; // in stroops
@@ -72,7 +73,7 @@ export async function estimateTransactionFee(
       hasSufficientBalance,
     };
   } catch (error) {
-    console.error('Fee estimation failed:', error);
+    logger.error('services/gasEstimation', 'Fee estimation failed', undefined, error instanceof Error ? error : new Error(String(error)));
     // Return fallback estimation
     return getFallbackEstimation(userBalance);
   }

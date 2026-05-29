@@ -33,6 +33,7 @@ import {
 } from "../types/contract";
 import { ProfileFormData } from "../types/profile";
 import { xlmToStroop } from "../helpers/format";
+import { logger } from '../services/logger';
 
 /**
  * Valid Stellar placeholder address used as the source account for
@@ -109,7 +110,7 @@ export const useContract = () => {
 
   // Warn once in development when contract ID is not configured
   if (!contractId) {
-    console.warn("[useContract] VITE_CONTRACT_ID is not set — contract calls will be skipped.");
+    logger.warn('[hooks/useContract]', 'VITE_CONTRACT_ID is not set — contract calls will be skipped.');
   }
 
   // --- Read-only Methods ---

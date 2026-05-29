@@ -26,6 +26,7 @@ import TipQRCode from "./TipQRCode";
 import EmbedCodeGenerator from "./EmbedCodeGenerator";
 import AchievementGallery from "@/features/achievements/AchievementGallery";
 import { useAchievements } from "@/hooks/useAchievements";
+import { logger } from "../../services/logger";
 
 /**
  * ProfilePage is a protected route that displays the connected user's profile.
@@ -54,7 +55,7 @@ const ProfilePage: React.FC = () => {
   React.useEffect(() => {
     getStats()
       .then((stats) => setFeeBps(stats.feeBps))
-      .catch((err) => console.error("Failed to fetch fee bps:", err));
+      .catch((err) => logger.warn('features/profile/ProfilePage', 'Failed to fetch fee bps', undefined, err instanceof Error ? err : new Error(String(err))));
   }, [getStats]);
 
   const handleDeregister = async () => {
@@ -72,7 +73,7 @@ const ProfilePage: React.FC = () => {
       // Navigate to home after successful deregistration
       navigate("/");
     } catch (err) {
-      console.error("Deregistration failed:", err);
+      logger.error('features/profile/ProfilePage', 'Deregistration failed', undefined, err instanceof Error ? err : new Error(String(err)));
       addToast({
         type: "error",
         message: err instanceof Error ? err.message : "Failed to deregister profile",

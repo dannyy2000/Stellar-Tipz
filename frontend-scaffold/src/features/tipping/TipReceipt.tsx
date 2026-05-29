@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import { Download, ExternalLink, Mail } from 'lucide-react';
 import { getExplorerTxUrl } from '../../helpers/network';
+import { logger } from '../../services/logger';
 import Button from '../../components/ui/Button';
 import PageContainer from '../../components/layout/PageContainer';
 
@@ -38,7 +39,7 @@ const TipReceipt: React.FC<TipReceiptProps> = ({
       link.href = dataUrl;
       link.click();
     } catch (error) {
-      console.error('Failed to generate receipt image:', error);
+      logger.error('features/tipping/TipReceipt', 'Failed to generate receipt image', undefined, error instanceof Error ? error : new Error(String(error)));
     }
   };
 

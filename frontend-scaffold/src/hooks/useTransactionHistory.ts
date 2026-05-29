@@ -3,6 +3,7 @@ import { useContract } from "./useContract";
 import { Tip } from "../types/contract";
 import { env } from "../helpers/env";
 import { mockTips } from "../features/mockData";
+import { logger } from '../services/logger';
 
 export type TransactionType = "sent" | "received" | "withdrawal";
 
@@ -219,7 +220,7 @@ export function useTransactionHistory(
         }
       }
     } catch (err) {
-      console.error("loadMore failed:", err);
+      logger.error('hooks/useTransactionHistory', 'loadMore failed', undefined, err instanceof Error ? err : new Error(String(err)));
     } finally {
       isFetchingRef.current = false;
     }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Copy, Check } from 'lucide-react';
 import Button from './Button';
+import { logger } from '../../services/logger';
 
 interface CopyButtonProps {
   text: string;
@@ -26,7 +27,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, label, className = '' }) 
       await navigator.clipboard.writeText(text);
       setCopied(true);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      logger.error('components/ui/CopyButton', 'Failed to copy text', undefined, err instanceof Error ? err : new Error(String(err)));
     }
   };
 

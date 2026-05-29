@@ -17,6 +17,7 @@ import {
   xdr,                  // XDR encoding/decoding
 } from "@stellar/stellar-sdk";
 
+import { logger } from "./logger";
 import { NetworkDetails } from "../helpers/network";
 import { stroopToXlm, mapContractResponse } from "../helpers/format";
 import { ERRORS } from "../helpers/error";
@@ -73,9 +74,7 @@ export const getLastLeaderboardQueryMs = (): number => lastLeaderboardQueryMs;
 const recordLeaderboardQueryTime = (elapsedMs: number): void => {
   lastLeaderboardQueryMs = elapsedMs;
   if (elapsedMs > LEADERBOARD_PERF_BUDGET_MS) {
-    console.warn(
-      `[leaderboard] Query took ${elapsedMs.toFixed(0)}ms (budget: ${LEADERBOARD_PERF_BUDGET_MS}ms)`,
-    );
+    logger.warn('services/soroban', `[leaderboard] Query took ${elapsedMs.toFixed(0)}ms (budget: ${LEADERBOARD_PERF_BUDGET_MS}ms)`);
   }
 };
 
@@ -206,15 +205,16 @@ export const getServer = (networkDetails: NetworkDetails) => {
   
   if (envRpcUrl) {
     rpcUrl = envRpcUrl;
-    console.log(`Using RPC URL from environment: ${rpcUrl}`);
+    logger.info('services/soroban', `Using RPC URL from environment: ${rpcUrl}`);
   } else {
     rpcUrl = RPC_URLS[networkDetails.network];
     
     if (!rpcUrl) {
-      console.warn(
+      logger.warn(
+        'services/soroban',
         `No RPC URL configured for network: ${networkDetails.network}. ` +
         `Available networks: ${Object.keys(RPC_URLS).join(", ")}. ` +
-        `Set VITE_SOROBAN_RPC_URL environment variable to override.`
+        `Set VITE_SOROBAN_RPC_URL environment variable to override.`,
       );
       throw new Error(
         `RPC URL not found for network: ${networkDetails.network}. ` +
@@ -222,7 +222,7 @@ export const getServer = (networkDetails: NetworkDetails) => {
       );
     }
     
-    console.log(`Using default RPC URL for ${networkDetails.network}: ${rpcUrl}`);
+    logger.info('services/soroban', `Using default RPC URL for ${networkDetails.network}: ${rpcUrl}`);
   }
   
   return new SorobanRpc.Server(rpcUrl, {

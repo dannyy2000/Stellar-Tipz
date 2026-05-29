@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { stroopToXlm } from "@/helpers/format";
 import { useContract } from "@/hooks/useContract";
 import type { Tip } from "@/types/contract";
+import { logger } from '../services/logger';
 
 const POLL_INTERVAL_MS = 15_000;
 const SETTINGS_KEY = "tipz_notification_settings";
@@ -160,7 +161,7 @@ export const useTipNotifications = (creatorAddress?: string) => {
           await notify(tip);
         }
       } catch (error) {
-        console.error("Failed to poll new tips:", error);
+        logger.error('hooks/useTipNotifications', 'Failed to poll new tips', undefined, error instanceof Error ? error : new Error(String(error)));
       }
     };
 

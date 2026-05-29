@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useContract } from './useContract';
+import { logger } from '../services/logger';
 
 export type TxStatus = 'idle' | 'signing' | 'submitting' | 'confirming' | 'success' | 'error';
 
@@ -60,7 +61,7 @@ export const useTipz = (): UseTipzReturn => {
     } catch (err) {
       window.clearTimeout(submittingTimer);
       window.clearTimeout(confirmingTimer);
-      console.error('Tip transaction failed:', err);
+      logger.error('hooks/useTipz', 'Tip transaction failed', undefined, err instanceof Error ? err : new Error(String(err)));
       const message = err instanceof Error ? err.message : 'Failed to send tip';
       setState((prev) => ({ 
         ...prev, 
@@ -85,7 +86,7 @@ export const useTipz = (): UseTipzReturn => {
       }));
       return result;
     } catch (err) {
-      console.error('Withdrawal failed:', err);
+      logger.error('hooks/useTipz', 'Withdrawal failed', undefined, err instanceof Error ? err : new Error(String(err)));
       const message = err instanceof Error ? err.message : 'Failed to withdraw tips';
       setState((prev) => ({ 
         ...prev, 

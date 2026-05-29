@@ -5,6 +5,7 @@ import { exportTipHistoryCSV, exportTipHistoryPDF, filterTipHistoryByDate } from
 import { formatTimestamp, stroopToXlm } from '@/helpers/format';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { logger } from '../../services/logger';
 
 type Role = 'creator' | 'tipper';
 
@@ -57,7 +58,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({ role = 'creator', limit = 1
         to: endDate || undefined
       }, 'tip-history.csv');
     } catch (err) {
-      console.error('Export CSV failed:', err);
+      logger.error('features/dashboard/ExportButton', 'Export CSV failed', undefined, err instanceof Error ? err : new Error(String(err)));
       alert('Failed to export CSV');
     } finally {
       setLoading(false);
@@ -76,7 +77,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({ role = 'creator', limit = 1
         to: endDate || undefined
       }, 'tip-history.pdf');
     } catch (err) {
-      console.error('Export PDF failed:', err);
+      logger.error('features/dashboard/ExportButton', 'Export PDF failed', undefined, err instanceof Error ? err : new Error(String(err)));
       alert('Failed to export PDF');
     } finally {
       setLoading(false);

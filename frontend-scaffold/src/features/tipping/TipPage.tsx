@@ -32,6 +32,7 @@ import CreatorNotFound from "./CreatorNotFound";
 import TipAmountPresets from "./TipAmountPresets";
 import TransactionTracker, { TransactionTrackerStatus } from "./TransactionTracker";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
+import { logger } from '../../services/logger';
 
 const TipPage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -52,7 +53,7 @@ const TipPage: React.FC = () => {
       const profile = await getProfileByUsername(username);
       setCreator(profile);
     } catch (err) {
-      console.error("Failed to fetch creator:", err);
+      logger.error('features/tipping/TipPage', 'Failed to fetch creator', undefined, err instanceof Error ? err : new Error(String(err)));
       setFetchError(String(err));
     } finally {
       setLoading(false);

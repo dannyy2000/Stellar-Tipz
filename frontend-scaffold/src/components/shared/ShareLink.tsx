@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Button from '../ui/Button';
+import { logger } from '../../services/logger';
 
 interface ShareLinkProps {
   username: string;
@@ -20,7 +21,7 @@ const ShareLink: React.FC<ShareLinkProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
+      logger.error('components/shared/ShareLink', 'Failed to copy to clipboard', undefined, err instanceof Error ? err : new Error(String(err)));
     }
   };
 

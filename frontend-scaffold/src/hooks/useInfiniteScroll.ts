@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '../services/logger';
 
 interface UseInfiniteScrollOptions {
   threshold?: number; // Distance from bottom to trigger load (in pixels)
@@ -63,7 +64,7 @@ export function useInfiniteScroll<T>(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load data';
       setError(errorMessage);
-      console.error('Infinite scroll load error:', err);
+      logger.error('hooks/useInfiniteScroll', 'Infinite scroll load error', undefined, err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
       isLoadingRef.current = false;

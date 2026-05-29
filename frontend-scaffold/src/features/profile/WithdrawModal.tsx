@@ -10,6 +10,7 @@ import Input from "@/components/ui/Input";
 import TransactionStatus from "@/components/shared/TransactionStatus";
 import { useToastStore } from "@/store/toastStore";
 import { ERRORS, categorizeError } from "@/helpers/error";
+import { logger } from '../../services/logger';
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -121,7 +122,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
       refetch();
       setTimeout(onClose, 2000); // Close after a short delay to show success state
     } catch (err) {
-      console.error("Withdrawal failed:", err);
+      logger.error('features/profile/WithdrawModal', 'Withdrawal failed', undefined, err instanceof Error ? err : new Error(String(err)));
     }
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { secureStorage } from '../services/secureStorage';
+import { logger } from '../services/logger';
 
 export interface Settings {
     tipNotifications: boolean;
@@ -38,7 +39,7 @@ export const useSettings = () => {
                     setSettings({ ...DEFAULT_SETTINGS, ...saved });
                 }
             } catch (error) {
-                console.error('Failed to load settings:', error);
+                logger.error('hooks/useSettings', 'Failed to load settings', undefined, error instanceof Error ? error : new Error(String(error)));
             } finally {
                 setIsLoading(false);
             }
@@ -52,7 +53,7 @@ export const useSettings = () => {
         try {
             await secureStorage.set(STORAGE_KEY, newSettings);
         } catch (error) {
-            console.error('Failed to save settings:', error);
+            logger.error('hooks/useSettings', 'Failed to save settings', undefined, error instanceof Error ? error : new Error(String(error)));
         }
     };
 
@@ -61,7 +62,7 @@ export const useSettings = () => {
         try {
             secureStorage.remove(STORAGE_KEY);
         } catch (error) {
-            console.error('Failed to reset settings:', error);
+            logger.error('hooks/useSettings', 'Failed to reset settings', undefined, error instanceof Error ? error : new Error(String(error)));
         }
     };
 

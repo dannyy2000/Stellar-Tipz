@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Palette, Lock, RotateCcw, Loader } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
+import { logger } from '../../services/logger';
 import Button from '@/components/ui/Button';
 import {
   notifyReducedMotionSettingsChanged,
@@ -44,7 +45,7 @@ export const SettingsPage: React.FC = () => {
       try {
         setSettings(JSON.parse(saved));
       } catch (e) {
-        console.error('Failed to load settings:', e);
+        logger.error('features/settings/SettingsPage', 'Failed to load settings', undefined, e instanceof Error ? e : new Error(String(e)));
       }
     }
   }, []);
