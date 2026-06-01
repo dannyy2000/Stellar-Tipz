@@ -51,7 +51,7 @@ export const LEADERBOARD_CACHE_TTL_MS = Number(
 export const LEADERBOARD_PERF_BUDGET_MS = 2_000;
 
 /** Default page size for client-side leaderboard pagination. */
-export const LEADERBOARD_DEFAULT_PAGE_SIZE = 20;
+export const LEADERBOARD_DEFAULT_PAGE_SIZE = 25;
 
 export interface LeaderboardFetchContext {
   contractId: string;

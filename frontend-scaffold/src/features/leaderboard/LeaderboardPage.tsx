@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from "react";
+import React, { useMemo } from "react";
 import { Crown, Medal, Trophy, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -7,6 +7,7 @@ import AmountDisplay from "../../components/shared/AmountDisplay";
 import CreditBadge from "../../components/shared/CreditBadge";
 import Avatar from "../../components/ui/Avatar";
 import Card from "../../components/ui/Card";
+import EmptyState from "../../components/ui/EmptyState";
 
 import ErrorState from "../../components/shared/ErrorState";
 import PullToRefresh from "../../components/shared/PullToRefresh";
@@ -14,40 +15,14 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { categorizeError } from "@/helpers/error";
 import LeaderboardSkeleton from "./LeaderboardSkeleton";
-
-
-const PAGE_SIZE = 20;
+import LeaderboardTable from "./LeaderboardTable";
 
 const LeaderboardPage: React.FC = () => {
-  usePageTitle('Leaderboard');
+  usePageTitle("Leaderboard");
 
-  const { entries, loading, hasMore, error, loadMore } = useLeaderboard(PAGE_SIZE);
-  const observerRef = useRef<HTMLDivElement>(null);
+  const { entries, loading, error, refetch } = useLeaderboard();
 
-  useEffect(() => {
-    const target = observerRef.current;
-    if (!target || !hasMore) {
-      return;
-    }
-
-    if (typeof window === "undefined" || typeof window.IntersectionObserver === "undefined") {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (observerEntries) => {
-        if (observerEntries[0]?.isIntersecting) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [hasMore, loadMore]);
-
-  // Top 3 entries for podium display
+  // Top 3 entries for podium display; ranks 4+ go to the paginated table.
   const topThree = useMemo(() => entries.slice(0, 3), [entries]);
   const remainingEntries = useMemo(() => entries.slice(3), [entries]);
 
@@ -58,97 +33,126 @@ const LeaderboardPage: React.FC = () => {
     : `Leaderboard loaded with ${entries.length} creators.`;
 
   if (loading && entries.length === 0 && !error) {
-    return <LeaderboardSkeleton count={PAGE_SIZE} />;
+    return <LeaderboardSkeleton count={25} />;
   }
 
   return (
     <PullToRefresh onRefresh={refetch}>
-    <PageContainer maxWidth="xl" className="space-y-8 py-10">
-      <section aria-labelledby="leaderboard-heading" className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <Card className="space-y-5 bg-yellow-100" padding="lg" hover>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-600">
-            Leaderboard
-          </p>
-          <h1 id="leaderboard-heading" className="flex items-center gap-3 text-4xl font-black uppercase">
-            <Trophy size={34} />
-            Top creators
-          </h1>
-          <p className="max-w-2xl text-base leading-7 text-gray-700">
-            A real-time snapshot of creators earning the most support on Stellar Tipz. These rankings are fetched directly from the Tipz Soroban contract.
-          </p>
-        </Card>
+      <PageContainer maxWidth="xl" className="space-y-8 py-10">
+        <section
+          aria-labelledby="leaderboard-heading"
+          className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]"
+        >
+          <Card className="space-y-5 bg-yellow-100" padding="lg" hover>
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-600">
+              Leaderboard
+            </p>
+            <h1
+              id="leaderboard-heading"
+              className="flex items-center gap-3 text-4xl font-black uppercase"
+            >
+              <Trophy size={34} />
+              Top creators
+            </h1>
+            <p className="max-w-2xl text-base leading-7 text-gray-700">
+              A real-time snapshot of creators earning the most support on
+              Stellar Tipz. These rankings are fetched directly from the Tipz
+              Soroban contract.
+            </p>
+          </Card>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          {error ? (
-            <div className="sm:col-span-3">
-              <ErrorState category={categorizeError(error).category} onRetry={() => window.location.reload()} />
-            </div>
-          ) : (
-            topThree.map((entry, index) => {
-              const icons = [<Crown key="crown" size={18} />, <Medal key="silver" size={18} />, <Medal key="bronze" size={18} />];
-              const labels = ["1st", "2nd", "3rd"];
+          <div className="grid gap-4 sm:grid-cols-3">
+            {error ? (
+              <div className="sm:col-span-3">
+                <ErrorState
+                  category={categorizeError(error).category}
+                  onRetry={refetch}
+                />
+              </div>
+            ) : (
+              topThree.map((entry, index) => {
+                const icons = [
+                  <Crown key="crown" size={18} />,
+                  <Medal key="silver" size={18} />,
+                  <Medal key="bronze" size={18} />,
+                ];
+                const labels = ["1st", "2nd", "3rd"];
 
-              return (
-                <Card key={entry.address} className="space-y-4" padding="lg" hover>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="inline-flex items-center gap-2 text-sm font-black uppercase">
-                      {icons[index]}
-                      {labels[index]}
-                    </span>
-                    <CreditBadge score={entry.creditScore} showScore={false} />
-                  </div>
-                  <Link to={`/@${entry.username}`} className="flex items-center gap-3">
-                    <Avatar address={entry.address} alt={entry.username} fallback={entry.username} size="lg" />
-                    <div>
-                      <p className="text-lg font-black uppercase truncate max-w-[120px]">{entry.username}</p>
-                      <AmountDisplay amount={entry.totalTipsReceived} className="text-sm" />
+                return (
+                  <Card key={entry.address} className="space-y-4" padding="lg" hover>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-2 text-sm font-black uppercase">
+                        {icons[index]}
+                        {labels[index]}
+                      </span>
+                      <CreditBadge score={entry.creditScore} showScore={false} />
                     </div>
-                  </Link>
-                </Card>
-              );
-            })
-          )}
-        </div>
-      </section>
-
-      <section role="region" aria-labelledby="full-rankings-heading">
-        <Card className="space-y-6" padding="lg">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <h2 id="full-rankings-heading" className="text-2xl font-black uppercase">Full rankings</h2>
-            <Link to="/dashboard" className="text-sm font-black uppercase underline">
-              Open your dashboard
-            </Link>
+                    <Link
+                      to={`/@${entry.username}`}
+                      className="flex items-center gap-3"
+                    >
+                      <Avatar
+                        address={entry.address}
+                        alt={entry.username}
+                        fallback={entry.username}
+                        size="lg"
+                      />
+                      <div>
+                        <p className="max-w-[120px] truncate text-lg font-black uppercase">
+                          {entry.username}
+                        </p>
+                        <AmountDisplay
+                          amount={entry.totalTipsReceived}
+                          className="text-sm"
+                        />
+                      </div>
+                    </Link>
+                  </Card>
+                );
+              })
+            )}
           </div>
+        </section>
 
-
-              {/* Loading indicator */}
-              {loading && (
-                <div className="flex items-center justify-center gap-2 p-8 text-gray-600">
-                  <Loader2 size={20} className="animate-spin" />
-                  <span className="text-sm font-bold uppercase">Loading more creators...</span>
-                </div>
-              )}
-
-              {/* End of list indicator */}
-              {!hasMore && entries.length > 0 && (
-                <div className="text-center p-8 border-t-2 border-dashed border-gray-300">
-                  <p className="text-sm font-bold text-gray-600 uppercase">
-                    🎉 You've reached the end of the leaderboard!
-                  </p>
-                </div>
-              )}
-
-              {/* Intersection observer target */}
-              <div ref={observerRef} className="h-4" />
+        <section role="region" aria-labelledby="full-rankings-heading">
+          <Card className="space-y-6" padding="lg">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <h2
+                id="full-rankings-heading"
+                className="text-2xl font-black uppercase"
+              >
+                Full rankings
+              </h2>
+              <Link
+                to="/dashboard"
+                className="text-sm font-black uppercase underline"
+              >
+                Open your dashboard
+              </Link>
             </div>
-          )}
-        </Card>
-      </section>
 
-      <div role="status" aria-live="polite" className="sr-only">
-        {leaderboardAnnouncement}
-      </div>
-    </PageContainer>
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 p-8 text-gray-600">
+                <Loader2 size={20} className="animate-spin" />
+                <span className="text-sm font-bold uppercase">
+                  Loading rankings...
+                </span>
+              </div>
+            ) : entries.length === 0 ? (
+              <EmptyState
+                title="No creators found on the leaderboard yet"
+                description="Be the first to register and receive tips on Stellar Tipz."
+              />
+            ) : (
+              <LeaderboardTable entries={remainingEntries} />
+            )}
+          </Card>
+        </section>
+
+        <div role="status" aria-live="polite" className="sr-only">
+          {leaderboardAnnouncement}
+        </div>
+      </PageContainer>
     </PullToRefresh>
   );
 };

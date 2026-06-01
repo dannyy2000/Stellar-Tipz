@@ -9,10 +9,8 @@ import { useWalletStore } from "../store/walletStore";
 import {
   getServer,
   getLeaderboard,
-  paginateLeaderboard,
   mergeLeaderboardEntries,
   invalidateLeaderboardCache,
-  LEADERBOARD_DEFAULT_PAGE_SIZE,
   LEADERBOARD_CACHE_TTL_MS,
   type LeaderboardFetchContext,
 } from "../services/soroban";
@@ -24,27 +22,26 @@ export interface LeaderboardData {
   entries: LeaderboardEntry[];
   loading: boolean;
   error: string | null;
+  /** @deprecated Pagination is now handled by LeaderboardTable. Always false. */
   hasMore: boolean;
+  /** @deprecated Pagination is now handled by LeaderboardTable. No-op. */
   loadMore: () => void;
   refetch: () => void;
 }
 
 /**
- * Fetches leaderboard data with RPC batching, TTL cache, and client pagination.
+ * Fetches the full leaderboard in a single RPC batch with TTL caching and
+ * background refresh. Client-side pagination is delegated to LeaderboardTable.
  */
-export const useLeaderboard = (
-  pageSize: number = LEADERBOARD_DEFAULT_PAGE_SIZE,
-): LeaderboardData => {
+export const useLeaderboard = (): LeaderboardData => {
   const wallet = useWallet();
   const { network } = useWalletStore();
 
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
 
   const fullBatchRef = useRef<LeaderboardEntry[]>([]);
-  const nextOffsetRef = useRef(0);
   const isFetchingRef = useRef(false);
   const hasDataRef = useRef(false);
 
@@ -72,25 +69,6 @@ export const useLeaderboard = (
     };
   }, [network, networkDetails.networkPassphrase, wallet.publicKey]);
 
-  const applyPage = useCallback(
-    (batch: LeaderboardEntry[], reset: boolean) => {
-      fullBatchRef.current = batch;
-
-      if (reset) {
-        const page = paginateLeaderboard(batch, 0, pageSize);
-        setEntries(page.items);
-        nextOffsetRef.current = page.nextOffset ?? batch.length;
-        setHasMore(page.hasMore);
-        return;
-      }
-
-      const visibleCount = Math.max(nextOffsetRef.current, pageSize);
-      setEntries(batch.slice(0, visibleCount));
-      setHasMore(visibleCount < batch.length);
-    },
-    [pageSize],
-  );
-
   const fetchLeaderboard = useCallback(
     async (options?: { background?: boolean; reset?: boolean }) => {
       if (isFetchingRef.current) {
@@ -98,7 +76,8 @@ export const useLeaderboard = (
       }
 
       if (env.useMockData) {
-        applyPage(mockLeaderboard, true);
+        fullBatchRef.current = mockLeaderboard;
+        setEntries(mockLeaderboard);
         setLoading(false);
         setError(null);
         return;
@@ -106,7 +85,6 @@ export const useLeaderboard = (
 
       if (!env.contractId) {
         setEntries([]);
-        setHasMore(false);
         setLoading(false);
         setError("Contract ID is not configured");
         return;
@@ -126,7 +104,8 @@ export const useLeaderboard = (
           ? batch
           : mergeLeaderboardEntries(fullBatchRef.current, batch);
 
-        applyPage(merged, shouldReset);
+        fullBatchRef.current = merged;
+        setEntries(merged);
         hasDataRef.current = true;
       } catch (err) {
         setError(
@@ -139,7 +118,7 @@ export const useLeaderboard = (
         isFetchingRef.current = false;
       }
     },
-    [applyPage, buildFetchContext],
+    [buildFetchContext],
   );
 
   useEffect(() => {
@@ -161,32 +140,14 @@ export const useLeaderboard = (
   }, [fetchLeaderboard]);
 
   const loadMore = useCallback(() => {
-    if (!hasMore || loading) {
-      return;
-    }
-
-    const page = paginateLeaderboard(
-      fullBatchRef.current,
-      nextOffsetRef.current,
-      pageSize,
-    );
-
-    if (page.items.length === 0) {
-      setHasMore(false);
-      return;
-    }
-
-    setEntries((prev) => [...prev, ...page.items]);
-    nextOffsetRef.current = page.nextOffset ?? fullBatchRef.current.length;
-    setHasMore(page.hasMore);
-  }, [hasMore, loading, pageSize]);
+    // No-op: pagination is now handled entirely by LeaderboardTable.
+  }, []);
 
   const refetch = useCallback(() => {
     invalidateLeaderboardCache();
-    nextOffsetRef.current = 0;
     hasDataRef.current = false;
     void fetchLeaderboard({ reset: true });
   }, [fetchLeaderboard]);
 
-  return { entries, loading, error, hasMore, loadMore, refetch };
+  return { entries, loading, error, hasMore: false, loadMore, refetch };
 };
