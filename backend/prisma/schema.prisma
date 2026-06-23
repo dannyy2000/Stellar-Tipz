@@ -159,3 +159,20 @@ model Streak {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
+
+/// Short-lived wallet authentication challenge.
+/// Created when a wallet requests a sign-in nonce; deleted (or expired) after verification.
+/// TTL is enforced by the application layer via AUTH_CHALLENGE_TTL_SECONDS.
+model AuthChallenge {
+  id        String   @id @default(cuid())
+  /// The wallet address this challenge was issued for.
+  address   String
+  /// Random nonce the wallet must sign to prove ownership.
+  nonce     String   @unique
+  /// UTC timestamp after which the challenge is no longer valid.
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([address])
+  @@index([expiresAt])
+}
