@@ -76,12 +76,17 @@ export async function verifyChallenge(
     throw new UnauthorizedError('Invalid signature');
   }
 
-  await prisma.authChallenge.delete({ where: { id: challenge.id } });
-
-  let user = await prisma.user.findUnique({ where: { stellarAddress: address } });
-  if (!user) {
-    user = await prisma.user.create({ data: { stellarAddress: address } });
+  // Atomic single-use enforcement: deleteMany returns count=0 if already consumed
+  const deleted = await prisma.authChallenge.deleteMany({ where: { id: challenge.id } });
+  if (deleted.count === 0) {
+    throw new UnauthorizedError('Challenge has already been used');
   }
+
+  const user = await prisma.user.upsert({
+    where: { stellarAddress: address },
+    create: { stellarAddress: address },
+    update: {},
+  });
 
   const authUser: AuthUser = {
     id: user.id,
