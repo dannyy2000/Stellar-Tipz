@@ -5,6 +5,7 @@ import pinoHttp from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './common/middleware/errorHandler.js';
+import { requestId } from './common/middleware/requestId.js';
 import { logger } from './common/utils/logger.js';
 import { openApiDocument } from './docs/openapi.js';
 import { authRouter } from './modules/auth/auth.routes.js';
@@ -36,6 +37,8 @@ export function createApp(): Express {
   );
   app.use(cors({ origin: env.CORS_ORIGIN.split(','), credentials: true }));
   app.use(express.json({ limit: '1mb' }));
+  // Assign/propagate a correlation id before logging so pino-http reuses it.
+  app.use(requestId);
   app.use(pinoHttp({ logger }));
 
   const docsPath = `${env.API_BASE_PATH}/docs`;
