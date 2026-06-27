@@ -5,6 +5,7 @@ import { logger } from './common/utils/logger.js';
 import { prisma } from './db/prisma.js';
 import { redis } from './db/redis.js';
 import { registerClosable, closeAll } from './common/utils/lifecycle.js';
+import { startIndexer } from './indexer/index.js';
 import { IndexerService } from './indexer/indexer.service.js';
 
 /** Process entry point: starts the HTTP server (and, later, the WebSocket + indexer). */
@@ -24,6 +25,14 @@ async function bootstrap(): Promise<void> {
     },
   });
 
+  // Start the off-chain indexer poll loop and stop it on shutdown.
+  const indexer = startIndexer();
+  registerClosable({
+    name: 'Indexer',
+    close: async () => {
+      indexer.stop();
+    },
+  });
   // Start the on-chain event indexer.
   const indexer = new IndexerService();
   indexer.start().catch((err) => logger.error({ err }, 'Indexer failed to start'));
