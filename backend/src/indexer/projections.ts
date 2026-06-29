@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../db/prisma.js';
 import { logger } from '../common/utils/logger.js';
 import type { DecodedEvent } from './sorobanClient.js';
@@ -58,7 +59,7 @@ async function persistEventLog(event: DecodedEvent): Promise<void> {
       topic: event.topic,
       ledger: event.ledger,
       txHash: event.txHash,
-      data: event.value as Record<string, unknown>,
+      data: (event.value ?? {}) as Prisma.InputJsonValue,
     },
   });
 }
