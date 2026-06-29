@@ -18,6 +18,13 @@ model User {
   id             String   @id @default(cuid())
   stellarAddress String   @unique
   username       String?  @unique
+  displayName    String?
+  bio            String?
+  imageUrl       String?
+  avatarCid      String?
+  xHandle        String?
+  role           String   @default("user")
+  scopes         String[] @default([])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   /// Soft-delete marker: non-null means the record is logically deleted.
@@ -28,6 +35,11 @@ model User {
 
   tipperSubscriptions  Subscription[] @relation("SubscriptionTipper")
   creatorSubscriptions Subscription[] @relation("SubscriptionCreator")
+  sentTips             Tip[]                @relation("SentTips")
+  receivedTips         Tip[]                @relation("ReceivedTips")
+  creditScore          CreditScore?
+  creditScoreHistory   CreditScoreHistory[]
+  withdrawals          Withdrawal[]
   notifications        Notification[]
   leaderboardSnapshots LeaderboardSnapshot[]
   streak               Streak?
@@ -65,6 +77,11 @@ model Tip {
   status        TipStatus @default(PENDING)
   message       String?
   refund        Refund?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sender        User?     @relation("SentTips", fields: [fromAddress], references: [stellarAddress])
+  receiver      User?     @relation("ReceivedTips", fields: [toAddress], references: [stellarAddress])
 
   @@index([toAddress, createdAt])
   @@index([fromAddress, createdAt])
@@ -186,6 +203,7 @@ model AuthChallenge {
   network         String
   /// UTC timestamp after which the challenge is no longer valid.
   expiresAt       DateTime
+  usedAt          DateTime?
 
   @@index([stellarAddress])
   @@index([expiresAt])
@@ -293,6 +311,44 @@ model WebhookDelivery {
 
   @@index([subscriptionId])
   @@index([status, nextAttemptAt])
+}
+
+enum WithdrawalStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+model CreditScore {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value      Int
+  computedAt DateTime @default(now())
+}
+
+model CreditScoreHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value      Int
+  computedAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Withdrawal {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      BigInt
+  fee         BigInt
+  txHash      String?          @unique
+  status      WithdrawalStatus @default(PENDING)
+  requestedAt DateTime         @default(now())
+  confirmedAt DateTime?
+
+  @@index([userId])
 }
 
 /// Pre-aggregated daily platform analytics, one row per calendar day (UTC).

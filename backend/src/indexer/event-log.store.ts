@@ -33,7 +33,7 @@ export class EventLogStore {
     let count = 0;
     for (const row of rows) {
       try {
-        await prisma.eventLog.create({ data: row });
+        await prisma.eventLog.create({ data: row as any });
         count++;
       } catch (err) {
         const error = err as PrismaClientKnownRequestError;
